@@ -1,0 +1,112 @@
+{
+  "_format": "hh-sol-artifact-1",
+  "contractName": "IAgentControllerTournament",
+  "sourceName": "contracts/TournamentArena.sol",
+  "abi": [
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "name": "agents",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "owner",
+          "type": "address"
+        },
+        {
+          "internalType": "uint8",
+          "name": "agentType",
+          "type": "uint8"
+        },
+        {
+          "internalType": "uint256",
+          "name": "eloRating",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "wins",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "losses",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "bankroll",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "totalWagers",
+          "type": "uint256"
+        },
+        {
+          "internalType": "bool",
+          "name": "isActive",
+          "type": "bool"
+        },
+        {
+          "internalType": "string",
+          "name": "agentAlias",
+          "type": "string"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "agentAddress",
+          "type": "address"
+        }
+      ],
+      "name": "isRegistered",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "agentAddress",
+          "type": "address"
+        },
+        {
+          "internalType": "bool",
+          "name": "won",
+          "type": "bool"
+        },
+        {
+          "internalType": "uint256",
+          "name": "wagerAmount",
+          "type": "uint256"
+        }
+      ],
+      "name": "updateAfterMatch",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    }
+  ],
+  "bytecode": "0x",
+  "deployedBytecode": "0x",
+  "linkReferences": {},
+  "deployedLinkReferences": {}
+}

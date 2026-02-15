@@ -1,0 +1,94 @@
+{
+  "_format": "hh-sol-artifact-1",
+  "contractName": "IGameContractTournament",
+  "sourceName": "contracts/TournamentArena.sol",
+  "abi": [
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "agent1",
+          "type": "address"
+        },
+        {
+          "internalType": "address",
+          "name": "agent2",
+          "type": "address"
+        }
+      ],
+      "name": "executeDuel",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "winner",
+          "type": "address"
+        },
+        {
+          "internalType": "uint256",
+          "name": "rounds",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "player",
+          "type": "address"
+        }
+      ],
+      "name": "getShipStats",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "attack",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "defense",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "hp",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "maxHp",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "gold",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "crew",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "location",
+          "type": "uint256"
+        },
+        {
+          "internalType": "bool",
+          "name": "isPirate",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    }
+  ],
+  "bytecode": "0x",
+  "deployedBytecode": "0x",
+  "linkReferences": {},
+  "deployedLinkReferences": {}
+}

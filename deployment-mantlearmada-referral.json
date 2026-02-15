@@ -1,0 +1,19 @@
+{
+  "timestamp": "2026-01-15T06:40:40.674Z",
+  "network": "mantleTestnet",
+  "deployer": "0xE74686Fd89ACB480B3903724C367395d86ED4519",
+  "newContract": {
+    "MantleArmada": "0x7dC53Ba9097B4E963A0b45B50030D0Fd56138C8A"
+  },
+  "existingContracts": {
+    "ArmadaToken": "0x76C25bf63B05a286e967857080b230f762e29772",
+    "ArmadaGuild": "0x1dd10f7d8c5C558A936e62E2ace11F1353dc5a25",
+    "BattlePass": "0xa3a52de616052408F1F571B52aCAa7609487fc31",
+    "ShipNFT": "0xB6048f00925E89c6266D041Cc00f232715B59d1a"
+  },
+  "features": [
+    "referral-system",
+    "auto-generated-codes",
+    "two-way-rewards"
+  ]
+}

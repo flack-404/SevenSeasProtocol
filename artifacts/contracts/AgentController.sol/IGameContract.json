@@ -1,0 +1,88 @@
+{
+  "_format": "hh-sol-artifact-1",
+  "contractName": "IGameContract",
+  "sourceName": "contracts/AgentController.sol",
+  "abi": [
+    {
+      "inputs": [
+        {
+          "internalType": "string",
+          "name": "boatName",
+          "type": "string"
+        },
+        {
+          "internalType": "bool",
+          "name": "isPirate",
+          "type": "bool"
+        },
+        {
+          "internalType": "uint256",
+          "name": "startLocation",
+          "type": "uint256"
+        }
+      ],
+      "name": "createAccount",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "player",
+          "type": "address"
+        }
+      ],
+      "name": "getShipStats",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "attack",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "defense",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "hp",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "maxHp",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "gold",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "crew",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "location",
+          "type": "uint256"
+        },
+        {
+          "internalType": "bool",
+          "name": "isPirate",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    }
+  ],
+  "bytecode": "0x",
+  "deployedBytecode": "0x",
+  "linkReferences": {},
+  "deployedLinkReferences": {}
+}

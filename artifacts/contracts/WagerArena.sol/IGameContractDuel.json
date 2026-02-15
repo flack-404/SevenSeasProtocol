@@ -1,0 +1,40 @@
+{
+  "_format": "hh-sol-artifact-1",
+  "contractName": "IGameContractDuel",
+  "sourceName": "contracts/WagerArena.sol",
+  "abi": [
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "agent1",
+          "type": "address"
+        },
+        {
+          "internalType": "address",
+          "name": "agent2",
+          "type": "address"
+        }
+      ],
+      "name": "executeDuel",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "winner",
+          "type": "address"
+        },
+        {
+          "internalType": "uint256",
+          "name": "rounds",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    }
+  ],
+  "bytecode": "0x",
+  "deployedBytecode": "0x",
+  "linkReferences": {},
+  "deployedLinkReferences": {}
+}
