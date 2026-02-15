@@ -142,14 +142,14 @@ export const ShipUpgradesSection = () => {
 
   // Fetch all available upgrades from the contract
   const fetchUpgrades = async () => {
-    if (!gameContract.isReady || !("getNextUpgradeId" in gameContract)) {
+    if (!gameContract.isReady || !("getNextUpgradeId" in gameContract) || !playerAccount) {
       setIsLoading(false);
       return;
     }
 
     try {
       setError(null);
-      
+
       // Get the next upgrade ID to know how many upgrades exist
       const nextUpgradeId = await gameContract.getNextUpgradeId();
       const totalUpgrades = Number(nextUpgradeId);

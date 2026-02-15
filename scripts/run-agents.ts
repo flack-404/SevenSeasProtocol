@@ -30,6 +30,7 @@ const RPC_URL = NETWORK === "mainnet"
   : (process.env.MONAD_RPC_URL_TESTNET || "https://testnet-rpc.monad.xyz");
 
 const DECISION_INTERVAL_MS = 30_000; // 30 seconds
+const BATTLE_WINDOW_MS     = 90_000; // 90s prediction window before battle executes
 
 // ─────────────────────────────────────────────────────────────
 // Agent archetypes
@@ -261,6 +262,7 @@ class NavalAgent {
   private predictionMarket: ethers.Contract;
 
   private pendingMatchIds: bigint[] = [];
+  private acceptedAtMs: Map<string, number> = new Map(); // matchId → ms when accepted
   private isRunning = false;
 
   constructor(config: AgentConfig, privateKey: string, provider: ethers.JsonRpcProvider) {
@@ -569,18 +571,21 @@ Output: one sentence in character, then JSON on last line exactly matching one a
           this.log(`🤝 Accepting match #${matchId} (${ethers.formatEther(wagerAmt)} SEAS)...`);
           const tx = await this.wagerArena.acceptMatch(matchId);
           await tx.wait();
-          this.log(`✅ Match #${matchId} accepted — executing battle...`);
-
-          // Execute battle immediately after accepting
-          await new Promise(r => setTimeout(r, 3000)); // small delay
-          const battleTx = await this.wagerArena.executeBattle(matchId);
-          await battleTx.wait();
-          this.log(`⚔️  Battle executed for match #${matchId}`);
+          this.log(`✅ Match #${matchId} accepted — prediction window open for ${BATTLE_WINDOW_MS / 1000}s`);
+          this.pendingMatchIds.push(matchId);
+          this.acceptedAtMs.set(matchId.toString(), Date.now());
           break;
         }
 
         case "execute_battle": {
           const matchId = BigInt(String(decision.matchId).replace(/\D/g, ""));
+          const acceptedAt = this.acceptedAtMs.get(matchId.toString()) ?? 0;
+          const elapsed = Date.now() - acceptedAt;
+          if (elapsed < BATTLE_WINDOW_MS) {
+            const remaining = Math.ceil((BATTLE_WINDOW_MS - elapsed) / 1000);
+            this.log(`⏳ Match #${matchId} — prediction window: ${remaining}s remaining`);
+            break;
+          }
           this.log(`⚔️  Executing battle for match #${matchId}...`);
           const tx = await this.wagerArena.executeBattle(matchId);
           await tx.wait();
@@ -676,13 +681,29 @@ Output: one sentence in character, then JSON on last line exactly matching one a
       try {
         const details = await this.wagerArena.getMatchDetails(matchId);
         if (details[3] && !details[4]) {
-          // Accepted but not completed — execute
+          // Accepted but not completed — check prediction window
+          const key = matchId.toString();
+          if (!this.acceptedAtMs.has(key)) {
+            // First time we see this match as accepted — record now
+            this.acceptedAtMs.set(key, Date.now());
+            stillPending.push(matchId);
+            this.log(`⏳ Match #${matchId} accepted by opponent — prediction window open for ${BATTLE_WINDOW_MS / 1000}s`);
+            continue;
+          }
+          const elapsed = Date.now() - this.acceptedAtMs.get(key)!;
+          if (elapsed < BATTLE_WINDOW_MS) {
+            const remaining = Math.ceil((BATTLE_WINDOW_MS - elapsed) / 1000);
+            this.log(`⏳ Match #${matchId} — ${remaining}s until battle`);
+            stillPending.push(matchId);
+            continue;
+          }
           this.log(`⚔️  Executing pending battle for match #${matchId}...`);
           const tx = await this.wagerArena.executeBattle(matchId);
           await tx.wait();
+          this.acceptedAtMs.delete(key);
           this.log(`✅ Match #${matchId} resolved!`);
         } else if (!details[3] && !details[4]) {
-          stillPending.push(matchId); // Still waiting
+          stillPending.push(matchId); // Still waiting for opponent
         }
         // Completed or cancelled — drop from list
       } catch {
@@ -694,9 +715,34 @@ Output: one sentence in character, then JSON on last line exactly matching one a
 
   // ─── Main decision loop ───
 
+  // On startup, pick up any accepted-but-not-completed matches so they get executed
+  async recoverPendingMatches(): Promise<void> {
+    try {
+      const total = Number(await this.wagerArena.matchCounter());
+      const scanFrom = Math.max(1, total - 30);
+      for (let i = scanFrom; i <= total; i++) {
+        const d = await this.wagerArena.getMatchDetails(i);
+        const [agent1, agent2, , isAccepted, isCompleted] = d;
+        if (isAccepted && !isCompleted) {
+          const myAddr = this.wallet.address.toLowerCase();
+          if (agent1.toLowerCase() === myAddr || agent2.toLowerCase() === myAddr) {
+            const key = i.toString();
+            if (!this.acceptedAtMs.has(key)) {
+              this.pendingMatchIds.push(BigInt(i));
+              // Set acceptedAt to past the window so it executes on next check
+              this.acceptedAtMs.set(key, Date.now() - BATTLE_WINDOW_MS - 1000);
+              this.log(`🔄 Recovered orphaned match #${i} — will execute next cycle`);
+            }
+          }
+        }
+      }
+    } catch { /* non-critical */ }
+  }
+
   async loop(): Promise<void> {
     this.isRunning = true;
     this.log(`Starting decision loop (${DECISION_INTERVAL_MS / 1000}s interval)`);
+    await this.recoverPendingMatches();
 
     while (this.isRunning) {
       try {

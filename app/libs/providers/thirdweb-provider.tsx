@@ -36,7 +36,7 @@ const monadMainnet = defineChain({
   testnet: false,
 });
 
-// Monad Testnet
+// Monad Testnet (RPC can be overridden for local Anvil fork)
 const monadTestnet = defineChain({
   id: 10143,
   name: "Monad Testnet",
@@ -47,7 +47,7 @@ const monadTestnet = defineChain({
   },
   rpcUrls: {
     default: {
-      http: ["https://testnet-rpc.monad.xyz"],
+      http: [process.env.NEXT_PUBLIC_MONAD_RPC_URL || "https://testnet-rpc.monad.xyz"],
     },
   },
   blockExplorers: {

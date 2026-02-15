@@ -76,7 +76,7 @@ async function main() {
   // ── Deploy PredictionMarket (fresh, wired to new WagerArena) ─
   console.log("📦 Deploying PredictionMarket...");
   const PredictionMarket = await hre.ethers.getContractFactory("PredictionMarket", deployer);
-  const predictionMarket = await PredictionMarket.deploy(wagerArenaAddr, EXISTING.SEASToken);
+  const predictionMarket = await PredictionMarket.deploy(EXISTING.SEASToken, deployer.address);
   await predictionMarket.waitForDeployment();
   const predictionMarketAddr = await predictionMarket.getAddress();
   console.log(`  ✅ PredictionMarket: ${predictionMarketAddr}`);

@@ -106,8 +106,8 @@ export const ShipArea = () => {
                 };
               }
               return ship;
-            } catch (error) {
-              console.error(`Error fetching faction for ${ship.address}:`, error);
+            } catch {
+              // Ship address may not be a registered player — skip silently
               return ship;
             }
           })

@@ -30,6 +30,11 @@ module.exports = {
       url: "http://127.0.0.1:8545",
       chainId: 31337,
     },
+    anvilFork: {
+      url: "http://127.0.0.1:8545",
+      chainId: 10143,
+      accounts: [PRIVATE_KEY],
+    },
     monadTestnet: {
       chainId: 10143,
       url: process.env.MONAD_RPC_URL_TESTNET || "https://testnet-rpc.monad.xyz",

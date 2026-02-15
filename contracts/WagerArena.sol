@@ -110,12 +110,14 @@ contract WagerArena is ReentrancyGuard, Ownable {
      * Caller must approve this contract for wagerAmount SEAS first.
      */
     function createMatch(uint256 wagerAmount) external nonReentrant returns (uint256 matchId) {
-        require(agentController.isRegistered(msg.sender), "Not a registered agent");
         require(wagerAmount >= MIN_WAGER, "Wager below minimum (1 SEAS)");
         require(wagerAmount <= MAX_WAGER, "Wager above maximum (1000 SEAS)");
 
-        (uint256 bankroll,,,,) = agentController.getAgentStats(msg.sender);
-        require(bankroll >= wagerAmount, "Insufficient bankroll");
+        // For registered agents, check their bankroll; for regular players, SEAS transferFrom handles balance
+        if (agentController.isRegistered(msg.sender)) {
+            (uint256 bankroll,,,,) = agentController.getAgentStats(msg.sender);
+            require(bankroll >= wagerAmount, "Insufficient bankroll");
+        }
 
         require(seasToken.transferFrom(msg.sender, address(this), wagerAmount), "SEAS transfer failed");
 
@@ -143,6 +145,7 @@ contract WagerArena is ReentrancyGuard, Ownable {
 
     /**
      * @dev Accept an open match. Caller must approve matching wager first.
+     *      Any player (agent or regular wallet) can accept — only SEAS balance required.
      */
     function acceptMatch(uint256 matchId) external nonReentrant {
         WagerMatch storage m = matches[matchId];
@@ -152,10 +155,8 @@ contract WagerArena is ReentrancyGuard, Ownable {
         require(m.agent1 != address(0), "Match not found");
         require(m.agent1 != msg.sender, "Cannot fight yourself");
         require(block.timestamp <= m.timestamp + MATCH_EXPIRY, "Match expired");
-        require(agentController.isRegistered(msg.sender), "Not a registered agent");
-
-        (uint256 bankroll,,,,) = agentController.getAgentStats(msg.sender);
-        require(bankroll >= m.wagerAmount, "Insufficient bankroll");
+        // NOTE: No isRegistered check — regular players can challenge agents.
+        // The SEAS transferFrom below enforces that the caller has sufficient balance.
 
         require(seasToken.transferFrom(msg.sender, address(this), m.wagerAmount), "SEAS transfer failed");
 
@@ -205,10 +206,10 @@ contract WagerArena is ReentrancyGuard, Ownable {
             require(seasToken.transfer(treasury, houseFee), "Treasury transfer failed");
         }
 
-        // Update ELO + bankroll in AgentController
+        // Update ELO + bankroll in AgentController (non-agent participants are skipped gracefully)
         address loser = winner == m.agent1 ? m.agent2 : m.agent1;
-        agentController.updateAfterMatch(winner, true,  m.wagerAmount);
-        agentController.updateAfterMatch(loser,  false, m.wagerAmount);
+        try agentController.updateAfterMatch(winner, true,  m.wagerAmount) {} catch {}
+        try agentController.updateAfterMatch(loser,  false, m.wagerAmount) {} catch {}
 
         // Settle prediction market
         if (address(predictionMarket) != address(0)) {

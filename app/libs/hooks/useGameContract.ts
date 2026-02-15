@@ -152,7 +152,8 @@ export function useGameContract() {
   };
 
   const getUpgradeCost = async (upgradeId: number, playerAddress?: string) => {
-    const address = playerAddress || account.address;
+    const address = playerAddress || account?.address;
+    if (!address) throw new Error("No wallet connected");
     return await readContract({
       contract,
       method: "function getUpgradeCost(uint256 id, address player) view returns (uint256)",
@@ -161,7 +162,8 @@ export function useGameContract() {
   };
 
   const getPurchaseCount = async (upgradeId: number, playerAddress?: string) => {
-    const address = playerAddress || account.address;
+    const address = playerAddress || account?.address;
+    if (!address) throw new Error("No wallet connected");
     return await readContract({
       contract,
       method: "function purchaseCounts(address, uint256) view returns (uint256)",
