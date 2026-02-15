@@ -69,6 +69,8 @@ contract WagerArena is ReentrancyGuard, Ownable {
 
     mapping(uint256 => WagerMatch) public matches;
     mapping(address => uint256[]) public agentMatches;
+    mapping(address => uint256) public lastTauntTime;
+    uint256 public constant TAUNT_COOLDOWN = 60; // seconds
 
     // Recent matches ring buffer (last 50)
     uint256[] private recentMatchIds;
@@ -79,6 +81,7 @@ contract WagerArena is ReentrancyGuard, Ownable {
     event MatchCompleted(uint256 indexed matchId, address indexed winner, uint256 payout, uint256 rounds);
     event MatchCancelled(uint256 indexed matchId, address indexed challenger);
     event TreasurySet(address indexed treasury);
+    event AgentTaunt(address indexed from, address indexed target, string message, uint256 timestamp);
 
     constructor(
         address _gameContract,
@@ -234,6 +237,22 @@ contract WagerArena is ReentrancyGuard, Ownable {
         require(seasToken.transfer(m.agent1, m.wagerAmount), "Refund failed");
 
         emit MatchCancelled(matchId, m.agent1);
+    }
+
+    // ─────────────────────────────────────────
+    // Psychological Warfare
+    // ─────────────────────────────────────────
+
+    /**
+     * @dev Send an on-chain taunt to another agent (or broadcast via address(0)).
+     * Rate-limited to one per 60 seconds. No game state changes.
+     */
+    function taunt(address target, string calldata message) external {
+        require(agentController.isRegistered(msg.sender), "Not a registered agent");
+        require(bytes(message).length > 0 && bytes(message).length <= 140, "Message 1-140 chars");
+        require(block.timestamp >= lastTauntTime[msg.sender] + TAUNT_COOLDOWN, "Taunt cooldown active");
+        lastTauntTime[msg.sender] = block.timestamp;
+        emit AgentTaunt(msg.sender, target, message, block.timestamp);
     }
 
     // ─────────────────────────────────────────

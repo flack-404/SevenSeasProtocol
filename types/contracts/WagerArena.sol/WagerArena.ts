@@ -30,6 +30,7 @@ export interface WagerArenaInterface extends Interface {
       | "MATCH_EXPIRY"
       | "MAX_WAGER"
       | "MIN_WAGER"
+      | "TAUNT_COOLDOWN"
       | "acceptMatch"
       | "agentController"
       | "agentMatches"
@@ -41,6 +42,7 @@ export interface WagerArenaInterface extends Interface {
       | "getMatchDetails"
       | "getOpenMatches"
       | "getRecentMatches"
+      | "lastTauntTime"
       | "matchCounter"
       | "matches"
       | "owner"
@@ -49,12 +51,14 @@ export interface WagerArenaInterface extends Interface {
       | "seasToken"
       | "setPredictionMarket"
       | "setTreasury"
+      | "taunt"
       | "transferOwnership"
       | "treasury"
   ): FunctionFragment;
 
   getEvent(
     nameOrSignatureOrTopic:
+      | "AgentTaunt"
       | "MatchAccepted"
       | "MatchCancelled"
       | "MatchCompleted"
@@ -73,6 +77,10 @@ export interface WagerArenaInterface extends Interface {
   ): string;
   encodeFunctionData(functionFragment: "MAX_WAGER", values?: undefined): string;
   encodeFunctionData(functionFragment: "MIN_WAGER", values?: undefined): string;
+  encodeFunctionData(
+    functionFragment: "TAUNT_COOLDOWN",
+    values?: undefined
+  ): string;
   encodeFunctionData(
     functionFragment: "acceptMatch",
     values: [BigNumberish]
@@ -118,6 +126,10 @@ export interface WagerArenaInterface extends Interface {
     values: [BigNumberish]
   ): string;
   encodeFunctionData(
+    functionFragment: "lastTauntTime",
+    values: [AddressLike]
+  ): string;
+  encodeFunctionData(
     functionFragment: "matchCounter",
     values?: undefined
   ): string;
@@ -144,6 +156,10 @@ export interface WagerArenaInterface extends Interface {
     values: [AddressLike]
   ): string;
   encodeFunctionData(
+    functionFragment: "taunt",
+    values: [AddressLike, string]
+  ): string;
+  encodeFunctionData(
     functionFragment: "transferOwnership",
     values: [AddressLike]
   ): string;
@@ -159,6 +175,10 @@ export interface WagerArenaInterface extends Interface {
   ): Result;
   decodeFunctionResult(functionFragment: "MAX_WAGER", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "MIN_WAGER", data: BytesLike): Result;
+  decodeFunctionResult(
+    functionFragment: "TAUNT_COOLDOWN",
+    data: BytesLike
+  ): Result;
   decodeFunctionResult(
     functionFragment: "acceptMatch",
     data: BytesLike
@@ -204,6 +224,10 @@ export interface WagerArenaInterface extends Interface {
     data: BytesLike
   ): Result;
   decodeFunctionResult(
+    functionFragment: "lastTauntTime",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
     functionFragment: "matchCounter",
     data: BytesLike
   ): Result;
@@ -226,11 +250,37 @@ export interface WagerArenaInterface extends Interface {
     functionFragment: "setTreasury",
     data: BytesLike
   ): Result;
+  decodeFunctionResult(functionFragment: "taunt", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "transferOwnership",
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "treasury", data: BytesLike): Result;
+}
+
+export namespace AgentTauntEvent {
+  export type InputTuple = [
+    from: AddressLike,
+    target: AddressLike,
+    message: string,
+    timestamp: BigNumberish
+  ];
+  export type OutputTuple = [
+    from: string,
+    target: string,
+    message: string,
+    timestamp: bigint
+  ];
+  export interface OutputObject {
+    from: string;
+    target: string;
+    message: string;
+    timestamp: bigint;
+  }
+  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
+  export type Filter = TypedDeferredTopicFilter<Event>;
+  export type Log = TypedEventLog<Event>;
+  export type LogDescription = TypedLogDescription<Event>;
 }
 
 export namespace MatchAcceptedEvent {
@@ -385,6 +435,8 @@ export interface WagerArena extends BaseContract {
 
   MIN_WAGER: TypedContractMethod<[], [bigint], "view">;
 
+  TAUNT_COOLDOWN: TypedContractMethod<[], [bigint], "view">;
+
   acceptMatch: TypedContractMethod<
     [matchId: BigNumberish],
     [void],
@@ -449,6 +501,8 @@ export interface WagerArena extends BaseContract {
     "view"
   >;
 
+  lastTauntTime: TypedContractMethod<[arg0: AddressLike], [bigint], "view">;
+
   matchCounter: TypedContractMethod<[], [bigint], "view">;
 
   matches: TypedContractMethod<
@@ -501,6 +555,12 @@ export interface WagerArena extends BaseContract {
     "nonpayable"
   >;
 
+  taunt: TypedContractMethod<
+    [target: AddressLike, message: string],
+    [void],
+    "nonpayable"
+  >;
+
   transferOwnership: TypedContractMethod<
     [newOwner: AddressLike],
     [void],
@@ -524,6 +584,9 @@ export interface WagerArena extends BaseContract {
   ): TypedContractMethod<[], [bigint], "view">;
   getFunction(
     nameOrSignature: "MIN_WAGER"
+  ): TypedContractMethod<[], [bigint], "view">;
+  getFunction(
+    nameOrSignature: "TAUNT_COOLDOWN"
   ): TypedContractMethod<[], [bigint], "view">;
   getFunction(
     nameOrSignature: "acceptMatch"
@@ -577,6 +640,9 @@ export interface WagerArena extends BaseContract {
     nameOrSignature: "getRecentMatches"
   ): TypedContractMethod<[count: BigNumberish], [bigint[]], "view">;
   getFunction(
+    nameOrSignature: "lastTauntTime"
+  ): TypedContractMethod<[arg0: AddressLike], [bigint], "view">;
+  getFunction(
     nameOrSignature: "matchCounter"
   ): TypedContractMethod<[], [bigint], "view">;
   getFunction(
@@ -629,12 +695,26 @@ export interface WagerArena extends BaseContract {
     nameOrSignature: "setTreasury"
   ): TypedContractMethod<[_treasury: AddressLike], [void], "nonpayable">;
   getFunction(
+    nameOrSignature: "taunt"
+  ): TypedContractMethod<
+    [target: AddressLike, message: string],
+    [void],
+    "nonpayable"
+  >;
+  getFunction(
     nameOrSignature: "transferOwnership"
   ): TypedContractMethod<[newOwner: AddressLike], [void], "nonpayable">;
   getFunction(
     nameOrSignature: "treasury"
   ): TypedContractMethod<[], [string], "view">;
 
+  getEvent(
+    key: "AgentTaunt"
+  ): TypedContractEvent<
+    AgentTauntEvent.InputTuple,
+    AgentTauntEvent.OutputTuple,
+    AgentTauntEvent.OutputObject
+  >;
   getEvent(
     key: "MatchAccepted"
   ): TypedContractEvent<
@@ -679,6 +759,17 @@ export interface WagerArena extends BaseContract {
   >;
 
   filters: {
+    "AgentTaunt(address,address,string,uint256)": TypedContractEvent<
+      AgentTauntEvent.InputTuple,
+      AgentTauntEvent.OutputTuple,
+      AgentTauntEvent.OutputObject
+    >;
+    AgentTaunt: TypedContractEvent<
+      AgentTauntEvent.InputTuple,
+      AgentTauntEvent.OutputTuple,
+      AgentTauntEvent.OutputObject
+    >;
+
     "MatchAccepted(uint256,address)": TypedContractEvent<
       MatchAcceptedEvent.InputTuple,
       MatchAcceptedEvent.OutputTuple,

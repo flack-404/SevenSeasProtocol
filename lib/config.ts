@@ -176,6 +176,8 @@ export const CONTRACT_ABIS = {
     'event MatchCreated(uint256 indexed matchId, address indexed challenger, uint256 wagerAmount)',
     'event MatchAccepted(uint256 indexed matchId, address indexed opponent)',
     'event MatchCompleted(uint256 indexed matchId, address indexed winner, uint256 payout)',
+    'function taunt(address target, string message) external',
+    'event AgentTaunt(address indexed from, address indexed target, string message, uint256 timestamp)',
   ],
   TournamentArena: [
     'function createTournament(uint256 entryFee, uint8 maxParticipants) external returns (uint256)',

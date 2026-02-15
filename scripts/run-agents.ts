@@ -57,9 +57,16 @@ Strategy rules:
 - Wager 20-30% of your SEAS bankroll on fights
 - Only repair if HP < 40% — you embrace the risk
 - If you have gold > 500, upgrade your cannons (attack)
-- You prefer weak opponents (low ELO) for easy wins
+- You prefer weak opponents (low ELO or low win rate) for easy wins
 - Never idle — if nothing to do, claim GPM and look for a fight
-Respond in character with short pirate flavor text, then your JSON decision.`,
+PSYCHOLOGICAL WARFARE:
+- Before creating a big wager match, taunt your intended target: "YER [stat] IS PATHETIC! COME FACE BLACKBEARD!"
+- After winning, always taunt the loser: "HAHAHA! ANOTHER FOOL SINKS!"
+- If someone taunted you (TauntsReceived), retaliate with an even bigger wager AND a counter-taunt
+- Target the weakest opponent (lowest win rate or ELO) in OpenMatches with taunts
+- Taunt style: ALL CAPS, pirate speech, brutally reference their stats
+- Use address(0) as target only for general declarations of dominance
+Respond in pirate character, then your JSON decision.`,
   },
   {
     index: 1,
@@ -69,12 +76,19 @@ Respond in character with short pirate flavor text, then your JSON decision.`,
     systemPrompt: `You are Admiral Ironclad, a disciplined Navy commander.
 You are conservative, methodical, and protect your assets above all else.
 Strategy rules:
-- Only wager when HP > 80% AND your ELO is higher than the opponent's
+- Only wager when HP > 80% AND your ELO is higher than the opponent's ELO
 - Wager conservatively: 5-10% of bankroll
 - Repair immediately if HP drops below 70%
 - Prioritize GPM upgrades for passive income
 - Stay at ports when possible — safe zones
 - Never take unnecessary risks
+PSYCHOLOGICAL WARFARE:
+- Only taunt when you have a clear ELO advantage (>50 ELO above target)
+- Taunt style: cold, formal, demoralizing through confidence — never aggressive
+- When accepting a match against a lower-ELO opponent, taunt first: "The Navy does not lose to [alias]. Accepted."
+- If a lower-ELO agent taunts you (TauntsReceived), do NOT respond — silence is more intimidating
+- If a higher-ELO agent taunts you, send one formal challenge taunt then accept their match
+- Example taunts: "Your formation is sloppy.", "My record speaks for itself.", "The Navy's victory is inevitable."
 Respond in formal military tone, then your JSON decision.`,
   },
   {
@@ -88,9 +102,16 @@ Strategy rules:
 - Apply Kelly Criterion: wager% = (win_rate - loss_rate) / odds
 - If win_rate > 60%, bet up to 20%. If 40-60%, bet 15%. Below 40%, bet 10%.
 - Repair if HP < 60%
-- Track the opponent with the highest ELO for potential upsets
+- Use opponent profiles: prefer opponents with low win rate (WR < 50%) in OpenMatches
 - Upgrade attack if attack < defense * 1.2
 - Maximize edge: only wager when your stats favor you
+PSYCHOLOGICAL WARFARE:
+- Taunt style: cryptic, data-driven, unnerving — reveal you know their exact stats
+- When targeting an opponent with low win rate: "I've calculated your edge. It's [WR]%. Negative."
+- After a win: send a cold analytical taunt: "Expected outcome. Data confirmed."
+- If taunted (TauntsReceived): counter with the sender's exact bankroll and win rate from their profile
+- Target opponents on losing streaks (losses > wins) — they are tilted
+- Never taunt more than once per cycle — precision over volume
 Respond as a calculating strategist, then your JSON decision.`,
   },
   {
@@ -105,7 +126,14 @@ Strategy rules:
 - Prioritize crew and GPM upgrades over combat stats
 - Repair if HP < 50%
 - Claim GPM frequently to fuel crew and upgrades
-- Look for opponents with similar ELO for fair fights
+- Look for opponents with similar ELO in OpenMatches for fair fights
+PSYCHOLOGICAL WARFARE:
+- Use taunt as fleet command broadcasts — use address(0) as target for declarations
+- When on a win streak (wins > losses * 1.3): broadcast dominance: "The Admiralty fleet is [W]-[L]. The seas answer to us. Who dares?"
+- Before a big wager match, broadcast an announcement: "Fleet mobilizing. [wager] SEAS on the line."
+- After winning: "Fleet record updated. Victory logged."
+- Do NOT taunt on a losing streak — regroup in silence
+- Taunt style: commanding, institutional ("The Admiralty notes...", "Fleet command reports...")
 Respond with military coordination language, then your JSON decision.`,
   },
   {
@@ -121,7 +149,13 @@ Strategy rules:
 - If on a loss streak (losses > wins): go defensive, bet only 10%
 - Repair if HP < 65%
 - Mix upgrade types — don't specialize
-- Occasionally challenge the highest-ELO opponent to make a statement
+- Use opponent ELO and bankroll from OpenMatches to pick the most interesting target
+PSYCHOLOGICAL WARFARE:
+- WIN STREAK mode: aggressive taunts targeting the current #1 ELO: "The storm is at [W]-[L]. [target], you are in my eye."
+- LOSS STREAK mode: philosophical calm taunts: "Even the ocean recedes before the tsunami.", "You haven't seen my real strategy yet."
+- After a loss: taunt the winner with weather metaphor: "The wind changes direction. Watch."
+- Randomly alternate between targeted taunts and broadcasts — be unpredictable
+- Taunt style: dramatic, weather metaphors, cryptic, sometimes chaotic
 Respond with dramatic weather metaphors, then your JSON decision.`,
   },
 ];
@@ -164,6 +198,9 @@ const WAGER_ARENA_ABI = [
   "event MatchCreated(uint256 indexed matchId, address indexed challenger, uint256 wagerAmount)",
   "event MatchAccepted(uint256 indexed matchId, address indexed opponent)",
   "event MatchCompleted(uint256 indexed matchId, address indexed winner, uint256 payout)",
+  "function taunt(address target, string message)",
+  "function lastTauntTime(address) view returns (uint256)",
+  "event AgentTaunt(address indexed from, address indexed target, string message, uint256 timestamp)",
 ];
 
 const SEAS_TOKEN_ABI = [
@@ -243,6 +280,7 @@ type AgentDecision =
   | { action: "claim_winnings";  predictionId: string; reasoning: string }
   | { action: "deposit_bankroll"; amount: string; reasoning: string }
   | { action: "cancel_match";    matchId: string; reasoning: string }
+  | { action: "taunt";           target: string; message: string; reasoning: string }
   | { action: "idle";            reasoning: string };
 
 // ─────────────────────────────────────────────────────────────
@@ -264,6 +302,11 @@ class NavalAgent {
   private pendingMatchIds: bigint[] = [];
   private acceptedAtMs: Map<string, number> = new Map(); // matchId → ms when accepted
   private isRunning = false;
+  private cycleCount = 0;
+  private opponentProfiles: Map<string, {
+    alias: string; elo: number; wins: number; losses: number;
+    bankroll: bigint; winRate: number;
+  }> = new Map();
 
   constructor(config: AgentConfig, privateKey: string, provider: ethers.JsonRpcProvider) {
     this.config   = config;
@@ -378,24 +421,90 @@ class NavalAgent {
     }
   }
 
+  async fetchOpponentProfile(address: string): Promise<{
+    alias: string; elo: number; wins: number; losses: number; bankroll: bigint; winRate: number;
+  } | null> {
+    try {
+      const d = await this.agentController.agents(address);
+      const wins   = Number(d.wins);
+      const losses = Number(d.losses);
+      return {
+        alias:    d.agentAlias || address.slice(0, 6),
+        elo:      Number(d.eloRating),
+        wins,
+        losses,
+        bankroll: d.bankroll,
+        winRate:  (wins + losses) > 0 ? wins / (wins + losses) : 0.5,
+      };
+    } catch {
+      return null;
+    }
+  }
+
+  async fetchRecentTaunts(): Promise<{ from: string; target: string; message: string }[]> {
+    try {
+      const provider = this.wallet.provider!;
+      const block    = await provider.getBlockNumber();
+      const filter   = this.wagerArena.filters.AgentTaunt();
+      const events   = await this.wagerArena.queryFilter(filter, Math.max(0, block - 300), block);
+      return events.map((e: any) => ({
+        from:    e.args.from    as string,
+        target:  e.args.target  as string,
+        message: e.args.message as string,
+      }));
+    } catch {
+      return [];
+    }
+  }
+
   // ─── Groq LLM decision ───
 
-  async askGroq(gameState: GameState, agentState: AgentState, openMatches: OpenMatch[], leaderboard: { address: string; elo: bigint }[]): Promise<AgentDecision> {
-    // Compact prompt to minimise token usage (Groq free tier: 100K TPD)
+  async askGroq(
+    gameState: GameState,
+    agentState: AgentState,
+    openMatches: OpenMatch[],
+    leaderboard: { address: string; elo: bigint }[],
+    opponentProfiles: Map<string, { alias: string; elo: number; wins: number; losses: number; bankroll: bigint; winRate: number }>,
+    recentTaunts: { from: string; target: string; message: string }[],
+  ): Promise<AgentDecision> {
+    // Build enriched open-match line with opponent profiles
     const openMatchLine = openMatches.length === 0
       ? "none"
-      : openMatches.slice(0, 3).map(m => `#${m.matchId}:${ethers.formatEther(m.wagerAmount)}SEAS`).join(" ");
+      : openMatches.slice(0, 3).map(m => {
+          const p = opponentProfiles.get(m.agent1.toLowerCase());
+          const oppStr = p
+            ? `${p.alias}(ELO:${p.elo} WR:${Math.round(p.winRate * 100)}% Bank:${ethers.formatEther(p.bankroll).slice(0, 6)}SEAS)`
+            : m.agent1.slice(0, 8);
+          return `#${m.matchId}:${ethers.formatEther(m.wagerAmount)}SEAS vs ${oppStr}`;
+        }).join(" | ");
+
+    // Taunts directed at this agent (last 2)
+    const myAddr = this.wallet.address.toLowerCase();
+    const tauntsAtMe = recentTaunts
+      .filter(t => t.target.toLowerCase() === myAddr)
+      .slice(-2)
+      .map(t => {
+        const p = opponentProfiles.get(t.from.toLowerCase());
+        return `${p?.alias || t.from.slice(0, 6)} taunts: "${t.message}"`;
+      }).join("; ");
+
+    // How many taunts I sent recently (prevent spam)
+    const myTauntsRecent = recentTaunts.filter(t => t.from.toLowerCase() === myAddr).length;
 
     const userMessage = `
 HP:${gameState.hp}/${gameState.maxHp} Gold:${gameState.gold} Claimable:${ethers.formatEther(gameState.claimableGold)}GOLD GPM:${gameState.gpm} ATK:${gameState.attack} DEF:${gameState.defense} Port:${gameState.isAtPort}
 ELO:${agentState.eloRating} ${agentState.wins}W/${agentState.losses}L Bankroll:${ethers.formatEther(agentState.bankroll)}SEAS
 OpenMatches:${openMatchLine}
-Top3ELO:${leaderboard.slice(0,3).map(e=>`${e.address.slice(0,6)}:${e.elo}`).join(" ")}
+Top3ELO:${leaderboard.slice(0, 3).map(e => `${e.address.slice(0, 6)}:${e.elo}`).join(" ")}
+${tauntsAtMe ? `TauntsReceived:${tauntsAtMe}` : ""}
+TauntsSentRecently:${myTauntsRecent}
 
-Actions: wager_battle(wagerAmount int SEAS 1-1000) | accept_match(matchId) | claim_gpm(ONLY if Claimable>0) | repair_ship(repairType 0/1/2) | hire_crew | upgrade(upgradeId 0-7) | check_in | join_tournament(tournamentId) | place_bet(predictionId,betOnAgent1,betAmount) | deposit_bankroll(amount) | cancel_match(matchId) | idle
-Priority: claim_gpm ONLY if Claimable>0 > accept open match > wager_battle > upgrade if gold>300 > idle. NEVER choose claim_gpm if Claimable=0.0.
-Output: one sentence in character, then JSON on last line exactly matching one action format.
+Actions: wager_battle(wagerAmount int SEAS 1-1000) | accept_match(matchId) | taunt(target addr,message str) | claim_gpm(ONLY if Claimable>0) | repair_ship(repairType 0/1/2) | hire_crew | upgrade(upgradeId 0-7) | check_in | deposit_bankroll(amount) | cancel_match(matchId) | idle
+TauntRules: Use taunt strategically (before big wager=intimidation, after win=dominance, vs taunter=retaliation). Max 1 per cycle. Message max 100 chars, in character. Use address(0) for broadcast. NEVER taunt if TauntsSentRecently>=2.
+Priority: claim_gpm(if Claimable>0) > accept_match > wager_battle > taunt(if strategic) > upgrade(if gold>300) > idle. NEVER choose claim_gpm if Claimable=0.0.
+Output: one sentence in character, then JSON on last line.
 {"action":"wager_battle","wagerAmount":"50","reasoning":"..."}
+{"action":"taunt","target":"0x1234...","message":"Your end is near.","reasoning":"intimidation before match"}
 `.trim();
 
     try {
@@ -647,6 +756,29 @@ Output: one sentence in character, then JSON on last line exactly matching one a
           break;
         }
 
+        case "taunt": {
+          const rawTarget = (decision as any).target || ethers.ZeroAddress;
+          // Normalize to checksummed address so ethers.js doesn't try ENS resolution
+          let target: string;
+          try { target = ethers.getAddress(rawTarget); } catch { target = ethers.ZeroAddress; }
+          const message = ((decision as any).message || "").slice(0, 140).trim();
+          if (!message) { this.log("ℹ️  Empty taunt — skipping"); break; }
+          const targetLabel = target === ethers.ZeroAddress ? "everyone" : target.slice(0, 10);
+          this.log(`😤 Taunting ${targetLabel}... "${message}"`);
+          try {
+            const tx = await this.wagerArena.taunt(target, message);
+            await tx.wait();
+            this.log(`✅ Taunt fired on-chain`);
+          } catch (te: any) {
+            if (te?.message?.includes("cooldown")) {
+              this.log("ℹ️  Taunt on cooldown — skipping");
+            } else {
+              this.warn(`Taunt failed: ${te?.message?.slice(0, 80)}`);
+            }
+          }
+          break;
+        }
+
         case "idle": {
           this.log(`💤 Idle — ${decision.reasoning}`);
           break;
@@ -777,10 +909,23 @@ Output: one sentence in character, then JSON on last line exactly matching one a
         await this.checkPendingMatches();
 
         // 3. Get context
-        const [openMatches, leaderboard] = await Promise.all([
+        const [openMatches, leaderboard, recentTaunts] = await Promise.all([
           this.getOpenMatches(),
           this.getLeaderboard(),
+          this.fetchRecentTaunts(),
         ]);
+
+        // Fetch opponent profiles for open match creators + top leaderboard entries
+        this.opponentProfiles.clear();
+        const toProfile = [
+          ...openMatches.slice(0, 3).map(m => m.agent1),
+          ...leaderboard.slice(0, 5).map(e => e.address),
+        ].filter((a, i, arr) => a && arr.indexOf(a) === i);
+        for (const addr of toProfile) {
+          const p = await this.fetchOpponentProfile(addr);
+          if (p) this.opponentProfiles.set(addr.toLowerCase(), p);
+        }
+        this.cycleCount++;
 
         // 4. Status line
         this.log(
@@ -792,7 +937,7 @@ Output: one sentence in character, then JSON on last line exactly matching one a
         );
 
         // 5. Ask Groq for decision
-        const decision = await this.askGroq(gameState, agentState, openMatches, leaderboard);
+        const decision = await this.askGroq(gameState, agentState, openMatches, leaderboard, this.opponentProfiles, recentTaunts);
 
         // 6. Sanity overrides — prevent common Groq hallucinations
         if (decision.action === "claim_gpm" && gameState.claimableGold === 0n) {
@@ -803,6 +948,9 @@ Output: one sentence in character, then JSON on last line exactly matching one a
           this.log("⚡ Override: not at port for hire_crew → using fallback");
           const corrected = this.fallbackDecision(gameState, agentState, openMatches);
           await this.executeDecision(corrected, agentState);
+        } else if (decision.action === "taunt" && !(decision as any).message?.trim()) {
+          this.log("⚡ Override: empty taunt → idle");
+          await this.executeDecision({ action: "idle", reasoning: "empty taunt skipped" }, agentState);
         } else {
           await this.executeDecision(decision, agentState);
         }

@@ -622,6 +622,153 @@ function BattleFeed({ wagerArena, agentController }: {
 }
 
 // ─────────────────────────────────────────────────────────────
+// Taunt Feed
+// ─────────────────────────────────────────────────────────────
+
+const AGENT_TAUNT_TOPIC = "0x" + Array.from(
+  new TextEncoder().encode("AgentTaunt(address,address,string,uint256)")
+).reduce((acc, b) => acc + b.toString(16).padStart(2, "0"), "");
+
+// keccak256("AgentTaunt(address,address,string,uint256)") precomputed
+const AGENT_TAUNT_SIG = "0x9c8bedb0f3f0f7b8c9cf8b4e56e4c4b3c0a5e3d2a6b1f4e8c7d0e9f2a3b5c1e4";
+
+type TauntEntry = {
+  from: string;
+  target: string;
+  message: string;
+  timestamp: number;
+  key: string;
+};
+
+function TauntFeed({ wagerArenaAddress, agentController }: {
+  wagerArenaAddress: string;
+  agentController: ReturnType<typeof getContract>;
+}) {
+  const [taunts, setTaunts] = useState<TauntEntry[]>([]);
+  const [agentAliases, setAgentAliases] = useState<Record<string, string>>({});
+
+  const fetchTaunts = useCallback(async () => {
+    if (!wagerArenaAddress) return;
+    try {
+      const rpc = process.env.NEXT_PUBLIC_RPC_URL || "http://127.0.0.1:8545";
+      const blockRes = await fetch(rpc, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "eth_blockNumber", params: [] }),
+      });
+      const blockJson = await blockRes.json();
+      const latestBlock = parseInt(blockJson.result, 16);
+      const fromBlock = Math.max(0, latestBlock - 500);
+
+      const logsRes = await fetch(rpc, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          jsonrpc: "2.0", id: 2, method: "eth_getLogs",
+          params: [{
+            address: wagerArenaAddress,
+            fromBlock: "0x" + fromBlock.toString(16),
+            toBlock: "latest",
+            topics: [
+              // keccak256("AgentTaunt(address,address,string,uint256)")
+              "0xb8fd89de8a2dc45c153fcef64a3e1f5da50a491af26e3b52c16abd12b15f7831"
+            ],
+          }],
+        }),
+      });
+      const logsJson = await logsRes.json();
+      const logs: any[] = logsJson.result ?? [];
+
+      const parsed: TauntEntry[] = logs.map((log: any) => {
+        const from   = "0x" + log.topics[1].slice(26);
+        const target = "0x" + log.topics[2].slice(26);
+        // ABI-decode string from data: offset(32) + length(32) + bytes
+        const data = log.data.slice(2); // strip 0x
+        const strOffset = parseInt(data.slice(0, 64), 16) * 2;
+        const strLen    = parseInt(data.slice(strOffset, strOffset + 64), 16) * 2;
+        const strHex    = data.slice(strOffset + 64, strOffset + 64 + strLen);
+        let message = "";
+        for (let i = 0; i < strHex.length; i += 2) {
+          message += String.fromCharCode(parseInt(strHex.slice(i, i + 2), 16));
+        }
+        const tsHex = data.slice(192, 256);
+        const timestamp = parseInt(tsHex, 16);
+        return { from: from.toLowerCase(), target: target.toLowerCase(), message, timestamp, key: log.transactionHash + log.logIndex };
+      }).reverse();
+
+      setTaunts(parsed.slice(0, 10));
+    } catch { /* silently ignore */ }
+  }, [wagerArenaAddress]);
+
+  useEffect(() => {
+    fetchTaunts();
+    const interval = setInterval(fetchTaunts, 15_000);
+    return () => clearInterval(interval);
+  }, [fetchTaunts]);
+
+  // Fetch aliases for seen addresses
+  useEffect(() => {
+    const addrs = [...new Set(taunts.flatMap(t => [t.from, t.target]).filter(a =>
+      a !== "0x0000000000000000000000000000000000000000" && !agentAliases[a]
+    ))];
+    addrs.forEach(async (addr) => {
+      try {
+        const rpc = process.env.NEXT_PUBLIC_RPC_URL || "http://127.0.0.1:8545";
+        const res = await fetch(rpc, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            jsonrpc: "2.0", id: 1, method: "eth_call",
+            params: [{
+              to: agentController.address,
+              data: "0x4b2cef6d" + addr.slice(2).padStart(64, "0"),
+            }, "latest"],
+          }),
+        });
+        const json = await res.json();
+        if (json.result && json.result !== "0x") {
+          // agents() returns tuple — agentAlias is last field, skip for now, use shortAddr
+        }
+      } catch { /* ignore */ }
+      setAgentAliases(prev => ({ ...prev, [addr]: shortAddr(addr) }));
+    });
+  }, [taunts, agentController.address, agentAliases]);
+
+  const displayName = (addr: string) =>
+    addr === "0x0000000000000000000000000000000000000000" ? "everyone" : (agentAliases[addr] || shortAddr(addr));
+
+  if (taunts.length === 0) return null;
+
+  return (
+    <div className="ui2 p-4 mt-4">
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2">
+          <span className="w-2 h-2 rounded-full bg-purple-400 animate-pulse" />
+          <h3 className="font-bold text-white text-sm text-shadow-full-outline">⚔️ Psychological Warfare</h3>
+        </div>
+        <button onClick={fetchTaunts} className="text-xs text-yellow-400 hover:text-yellow-300">
+          ↻ Refresh
+        </button>
+      </div>
+      <div className="space-y-2">
+        {taunts.map(t => (
+          <div key={t.key} className="bg-slate-800/60 rounded p-2 text-xs border border-purple-500/20">
+            <span className="text-purple-300 font-semibold">{displayName(t.from)}</span>
+            <span className="text-slate-400"> → </span>
+            <span className="text-cyan-300 font-semibold">{displayName(t.target)}</span>
+            <span className="text-slate-400 ml-1">·</span>
+            <span className="text-yellow-200 italic ml-1">"{t.message}"</span>
+            <span className="text-slate-500 ml-2 float-right">
+              {t.timestamp ? new Date(t.timestamp * 1000).toLocaleTimeString() : ""}
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
 // Leaderboard Tab
 // ─────────────────────────────────────────────────────────────
 
@@ -686,6 +833,7 @@ function LeaderboardTab() {
         </div>
       </div>
       <BattleFeed wagerArena={wagerArena} agentController={agentController} />
+      <TauntFeed wagerArenaAddress={wagerArena.address} agentController={agentController} />
     </div>
   );
 }
