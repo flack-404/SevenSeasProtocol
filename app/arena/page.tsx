@@ -25,11 +25,15 @@ function shortAddr(addr: string) {
 }
 
 function eloColor(elo: number) {
+  if (elo >= 1400) return "text-yellow-300";
   if (elo >= 1200) return "text-yellow-400";
   if (elo >= 1100) return "text-orange-400";
   if (elo >= 1000) return "text-green-400";
   return "text-slate-400";
 }
+
+// Known agent addresses → type (populated from env for display)
+const KNOWN_AGENTS: Record<string, number> = {};
 
 // ─────────────────────────────────────────────────────────────
 // Contract hooks
@@ -73,47 +77,202 @@ function useArenaContracts() {
 }
 
 // ─────────────────────────────────────────────────────────────
+// Agent stat row (leaderboard)
+// ─────────────────────────────────────────────────────────────
+
+function AgentRow({
+  address,
+  elo,
+  rank,
+  agentController,
+}: {
+  address: string;
+  elo: number;
+  rank: number;
+  agentController: ReturnType<typeof getContract>;
+}) {
+  // Fetch detailed stats for this agent
+  const { data: statsData } = useReadContract({
+    contract: agentController,
+    method: "function getAgentStats(address agentAddress) external view returns (uint256 bankroll, uint256 wins, uint256 losses, uint256 eloRating, uint256 totalWagers)",
+    params: [address],
+    refetchInterval: 15_000,
+  });
+
+  const { data: agentData } = useReadContract({
+    contract: agentController,
+    method: "function agents(address) view returns (address owner, uint8 agentType, uint256 eloRating, uint256 wins, uint256 losses, uint256 bankroll, uint256 totalWagers, bool isActive, string agentAlias)",
+    params: [address],
+    refetchInterval: 15_000,
+  });
+
+  const bankroll = statsData ? (statsData as any)[0] as bigint : 0n;
+  const wins     = statsData ? Number((statsData as any)[1]) : 0;
+  const losses   = statsData ? Number((statsData as any)[2]) : 0;
+  const agentType = agentData ? Number((agentData as any)[1]) : -1;
+
+  const info  = agentInfo(agentType);
+  const medal = rank === 0 ? "🥇" : rank === 1 ? "🥈" : rank === 2 ? "🥉" : `#${rank + 1}`;
+  const total = wins + losses;
+  const wr    = total > 0 ? Math.round((wins / total) * 100) : 0;
+
+  return (
+    <div className="bg-slate-800/60 border border-slate-700/50 rounded-xl p-4 hover:border-slate-600 transition-colors">
+      <div className="flex items-center gap-3">
+        <span className="text-2xl w-8 text-center shrink-0">{medal}</span>
+        <span className="text-2xl shrink-0">{info.emoji}</span>
+        <div className="flex-1 min-w-0">
+          <div className="font-bold text-white">{info.alias || shortAddr(address)}</div>
+          <div className="text-xs text-slate-500">{shortAddr(address)}</div>
+          <div className="flex gap-2 mt-1">
+            <span className="text-xs text-green-400">{wins}W</span>
+            <span className="text-xs text-red-400">{losses}L</span>
+            {total > 0 && <span className="text-xs text-slate-500">{wr}% WR</span>}
+          </div>
+        </div>
+        <div className="text-right shrink-0">
+          <div className={`text-xl font-bold tabular-nums ${eloColor(elo)}`}>
+            {elo.toLocaleString()}
+          </div>
+          <div className="text-xs text-slate-500">ELO</div>
+          {bankroll > 0n && (
+            <div className="text-xs text-emerald-400 mt-0.5">
+              {parseFloat(formatEther(bankroll)).toFixed(0)} SEAS
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// Battle Feed (live completed matches)
+// ─────────────────────────────────────────────────────────────
+
+function BattleFeedEntry({
+  matchId,
+  wagerArena,
+  agentController,
+}: {
+  matchId: bigint;
+  wagerArena: ReturnType<typeof getContract>;
+  agentController: ReturnType<typeof getContract>;
+}) {
+  const { data: details } = useReadContract({
+    contract: wagerArena,
+    method: "function getMatchDetails(uint256 matchId) external view returns (address agent1, address agent2, uint256 wagerAmount, bool isAccepted, bool isCompleted, address winner)",
+    params: [matchId],
+    refetchInterval: 15_000,
+  });
+
+  const { data: a1Data } = useReadContract({
+    contract: agentController,
+    method: "function agents(address) view returns (address owner, uint8 agentType, uint256 eloRating, uint256 wins, uint256 losses, uint256 bankroll, uint256 totalWagers, bool isActive, string agentAlias)",
+    params: [details ? (details as any)[0] : "0x0000000000000000000000000000000000000000"],
+    refetchInterval: 30_000,
+  });
+
+  const { data: a2Data } = useReadContract({
+    contract: agentController,
+    method: "function agents(address) view returns (address owner, uint8 agentType, uint256 eloRating, uint256 wins, uint256 losses, uint256 bankroll, uint256 totalWagers, bool isActive, string agentAlias)",
+    params: [details ? (details as any)[1] : "0x0000000000000000000000000000000000000000"],
+    refetchInterval: 30_000,
+  });
+
+  if (!details) return null;
+  const [agent1, agent2, wagerAmount, , isCompleted, winner] = details as [string, string, bigint, boolean, boolean, string];
+  if (!isCompleted) return null;
+
+  const hasWinner = winner && winner !== "0x0000000000000000000000000000000000000000";
+  const a1Type  = a1Data ? Number((a1Data as any)[1]) : -1;
+  const a2Type  = a2Data ? Number((a2Data as any)[1]) : -1;
+  const a1Info  = agentInfo(a1Type);
+  const a2Info  = agentInfo(a2Type);
+  const a1Won   = hasWinner && winner.toLowerCase() === agent1.toLowerCase();
+  const payout  = parseFloat(formatEther(wagerAmount * 2n * 95n / 100n)).toFixed(1);
+
+  return (
+    <div className="flex items-center gap-3 py-2.5 border-b border-slate-800/60 last:border-0">
+      <span className="text-lg shrink-0">⚔️</span>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2 text-sm">
+          <span className={a1Won ? "text-yellow-300 font-bold" : "text-slate-400"}>
+            {a1Info.emoji} {a1Info.alias || shortAddr(agent1)}
+          </span>
+          <span className="text-slate-600 text-xs">vs</span>
+          <span className={!a1Won ? "text-yellow-300 font-bold" : "text-slate-400"}>
+            {a2Info.emoji} {a2Info.alias || shortAddr(agent2)}
+          </span>
+        </div>
+        <div className="text-xs text-slate-500 mt-0.5">Match #{matchId.toString()}</div>
+      </div>
+      <div className="text-right shrink-0">
+        <div className="text-xs font-bold text-emerald-400">+{payout} SEAS</div>
+        <div className="text-xs text-slate-600">winner</div>
+      </div>
+    </div>
+  );
+}
+
+function BattleFeed({ wagerArena, agentController }: {
+  wagerArena: ReturnType<typeof getContract>;
+  agentController: ReturnType<typeof getContract>;
+}) {
+  const { data: recentIds, refetch } = useReadContract({
+    contract: wagerArena,
+    method: "function getRecentMatches(uint256 count) external view returns (uint256[] memory)",
+    params: [15n],
+    refetchInterval: 15_000,
+  });
+
+  const ids: bigint[] = (recentIds as bigint[]) ?? [];
+  const completedIds = ids.slice().reverse();
+
+  return (
+    <div className="bg-slate-800/40 border border-slate-700/40 rounded-xl p-4">
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2">
+          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+          <h3 className="font-bold text-white text-sm">Live Battle Feed</h3>
+        </div>
+        <button onClick={() => refetch()} className="text-xs text-blue-400 hover:text-blue-300">
+          🔄
+        </button>
+      </div>
+      {completedIds.length === 0 ? (
+        <p className="text-xs text-slate-500 text-center py-4">Battles will appear here as agents fight…</p>
+      ) : (
+        <div>
+          {completedIds.map(id => (
+            <BattleFeedEntry key={id.toString()} matchId={id} wagerArena={wagerArena} agentController={agentController} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
 // Leaderboard tab
 // ─────────────────────────────────────────────────────────────
 
 function LeaderboardTab() {
-  const { agentController } = useArenaContracts();
+  const { agentController, wagerArena } = useArenaContracts();
 
   const { data: leaderboardData, isLoading, refetch } = useReadContract({
     contract: agentController,
     method: "function getLeaderboard(uint256 count) external view returns (address[] memory, uint256[] memory)",
     params: [20n],
+    refetchInterval: 15_000,
   });
-
-  const [agentDetails, setAgentDetails] = useState<Array<{
-    address: string;
-    elo: number;
-    wins: number;
-    losses: number;
-    bankroll: bigint;
-    agentType: number;
-    alias: string;
-  }>>([]);
 
   const addresses: string[] = (leaderboardData as any)?.[0] ?? [];
   const elos: bigint[] = (leaderboardData as any)?.[1] ?? [];
 
-  useEffect(() => {
-    if (addresses.length === 0) return;
-    // We'd normally batch-fetch agent stats; for now build from leaderboard data
-    const items = addresses
-      .map((addr, i) => ({
-        address: addr,
-        elo: Number(elos[i] ?? 0n),
-        wins: 0,
-        losses: 0,
-        bankroll: 0n,
-        agentType: -1,
-        alias: shortAddr(addr),
-      }))
-      .filter(a => a.address !== "0x0000000000000000000000000000000000000000");
-    setAgentDetails(items);
-  }, [addresses.join(",")]); // eslint-disable-line
+  const validAgents = addresses
+    .map((addr, i) => ({ address: addr, elo: Number(elos[i] ?? 0n) }))
+    .filter(a => a.address !== "0x0000000000000000000000000000000000000000");
 
   if (isLoading) {
     return (
@@ -124,7 +283,7 @@ function LeaderboardTab() {
     );
   }
 
-  if (agentDetails.length === 0) {
+  if (validAgents.length === 0) {
     return (
       <div className="text-center py-20 text-slate-500">
         <div className="text-5xl mb-4">🏴‍☠️</div>
@@ -135,42 +294,28 @@ function LeaderboardTab() {
   }
 
   return (
-    <div>
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-xl font-bold text-white">Agent ELO Rankings</h2>
-        <button
-          onClick={() => refetch()}
-          className="text-sm text-blue-400 hover:text-blue-300 flex items-center gap-1"
-        >
-          🔄 Refresh
-        </button>
+    <div className="space-y-4">
+      {/* Rankings */}
+      <div>
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-lg font-bold text-white">Agent ELO Rankings</h2>
+          <span className="text-xs text-slate-500">↻ auto-refreshes every 15s</span>
+        </div>
+        <div className="space-y-2">
+          {validAgents.map((agent, idx) => (
+            <AgentRow
+              key={agent.address}
+              address={agent.address}
+              elo={agent.elo}
+              rank={idx}
+              agentController={agentController}
+            />
+          ))}
+        </div>
       </div>
 
-      <div className="space-y-2">
-        {agentDetails.map((agent, idx) => {
-          const info = agentInfo(agent.agentType);
-          const medal = idx === 0 ? "🥇" : idx === 1 ? "🥈" : idx === 2 ? "🥉" : `#${idx + 1}`;
-          return (
-            <div
-              key={agent.address}
-              className="bg-slate-800/60 border border-slate-700/50 rounded-xl p-4 flex items-center gap-4 hover:border-slate-600 transition-colors"
-            >
-              <span className="text-2xl w-8 text-center shrink-0">{medal}</span>
-              <span className="text-2xl shrink-0">{info.emoji}</span>
-              <div className="flex-1 min-w-0">
-                <div className="font-bold text-white truncate">{info.alias}</div>
-                <div className="text-xs text-slate-400">{shortAddr(agent.address)} · {info.name}</div>
-              </div>
-              <div className="text-right shrink-0">
-                <div className={`text-xl font-bold tabular-nums ${eloColor(agent.elo)}`}>
-                  {agent.elo.toLocaleString()}
-                </div>
-                <div className="text-xs text-slate-500">ELO</div>
-              </div>
-            </div>
-          );
-        })}
-      </div>
+      {/* Live battle feed */}
+      <BattleFeed wagerArena={wagerArena} agentController={agentController} />
     </div>
   );
 }
@@ -179,26 +324,115 @@ function LeaderboardTab() {
 // Matches tab
 // ─────────────────────────────────────────────────────────────
 
-function MatchCard({ matchId, wagerArena }: { matchId: bigint; wagerArena: ReturnType<typeof getContract> }) {
-  const { data: details } = useReadContract({
+function MatchCard({
+  matchId,
+  wagerArena,
+  agentController,
+  playerAddress,
+}: {
+  matchId: bigint;
+  wagerArena: ReturnType<typeof getContract>;
+  agentController: ReturnType<typeof getContract>;
+  playerAddress?: string;
+}) {
+  const { mutate: sendTransaction, isPending } = useSendTransaction();
+  const [txStatus, setTxStatus] = useState("");
+
+  const { data: details, refetch } = useReadContract({
     contract: wagerArena,
     method: "function getMatchDetails(uint256 matchId) external view returns (address agent1, address agent2, uint256 wagerAmount, bool isAccepted, bool isCompleted, address winner)",
     params: [matchId],
+    refetchInterval: 10_000,
+  });
+
+  const { data: a1Data } = useReadContract({
+    contract: agentController,
+    method: "function agents(address) view returns (address owner, uint8 agentType, uint256 eloRating, uint256 wins, uint256 losses, uint256 bankroll, uint256 totalWagers, bool isActive, string agentAlias)",
+    params: [details ? (details as any)[0] : "0x0000000000000000000000000000000000000000"],
+  });
+
+  const { data: a2Data } = useReadContract({
+    contract: agentController,
+    method: "function agents(address) view returns (address owner, uint8 agentType, uint256 eloRating, uint256 wins, uint256 losses, uint256 bankroll, uint256 totalWagers, bool isActive, string agentAlias)",
+    params: [details ? (details as any)[1] : "0x0000000000000000000000000000000000000000"],
   });
 
   if (!details) return null;
 
   const [agent1, agent2, wagerAmount, isAccepted, isCompleted, winner] = details as [string, string, bigint, boolean, boolean, string];
 
-  const statusLabel = isCompleted ? "Completed" : isAccepted ? "In Progress" : "Open";
+  const a1Type = a1Data ? Number((a1Data as any)[1]) : -1;
+  const a2Type = a2Data ? Number((a2Data as any)[1]) : -1;
+  const a1Info = agentInfo(a1Type);
+  const a2Info = agentInfo(a2Type);
+
+  const statusLabel = isCompleted ? "Completed" : isAccepted ? "In Progress" : "Open — Challenge!";
   const statusColor = isCompleted
     ? "bg-slate-700 text-slate-300"
     : isAccepted
       ? "bg-amber-900/60 text-amber-300 border border-amber-600/40"
-      : "bg-emerald-900/60 text-emerald-300 border border-emerald-600/40";
+      : "bg-emerald-900/60 text-emerald-300 border border-emerald-600/40 animate-pulse";
+
+  const hasWinner = isCompleted && winner && winner !== "0x0000000000000000000000000000000000000000";
+  const a1Won     = hasWinner && winner.toLowerCase() === agent1.toLowerCase();
+
+  // Player can accept any open match (including their own wallet vs agent)
+  const canAccept = !isAccepted && !isCompleted && playerAddress &&
+    playerAddress.toLowerCase() !== agent1.toLowerCase();
+
+  async function handleAcceptAndBattle() {
+    if (!playerAddress || !canAccept) return;
+    setTxStatus("Approving SEAS…");
+    const addresses = getContractAddresses();
+    const chain = getActiveChain();
+    const seasToken = getContract({
+      client, chain,
+      address: addresses.SEASToken,
+      abi: CONTRACT_ABIS.SEASToken as any[],
+    });
+
+    const approveTx = prepareContractCall({
+      contract: seasToken,
+      method: "function approve(address spender, uint256 amount) returns (bool)",
+      params: [addresses.WagerArena, wagerAmount],
+    });
+
+    sendTransaction(approveTx, {
+      onSuccess: () => {
+        setTxStatus("Accepting match…");
+        const acceptTx = prepareContractCall({
+          contract: wagerArena,
+          method: "function acceptMatch(uint256 matchId) external",
+          params: [matchId],
+        });
+        sendTransaction(acceptTx, {
+          onSuccess: () => {
+            setTxStatus("Executing battle…");
+            const battleTx = prepareContractCall({
+              contract: wagerArena,
+              method: "function executeBattle(uint256 matchId) external",
+              params: [matchId],
+            });
+            sendTransaction(battleTx, {
+              onSuccess: () => {
+                setTxStatus("⚔️ Battle complete! Check result.");
+                refetch();
+                setTimeout(() => setTxStatus(""), 5000);
+              },
+              onError: (e) => setTxStatus(`❌ ${e.message.slice(0, 60)}`),
+            });
+          },
+          onError: (e) => setTxStatus(`❌ ${e.message.slice(0, 60)}`),
+        });
+      },
+      onError: (e) => setTxStatus(`❌ ${e.message.slice(0, 60)}`),
+    });
+  }
 
   return (
-    <div className="bg-slate-800/60 border border-slate-700/50 rounded-xl p-4 hover:border-slate-600 transition-colors">
+    <div className={`bg-slate-800/60 border rounded-xl p-4 transition-colors ${
+      canAccept ? "border-emerald-700/60 hover:border-emerald-500/80" : "border-slate-700/50 hover:border-slate-600"
+    }`}>
       <div className="flex items-start justify-between gap-3">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-2">
@@ -208,15 +442,20 @@ function MatchCard({ matchId, wagerArena }: { matchId: bigint; wagerArena: Retur
             </span>
           </div>
           <div className="flex items-center gap-3">
-            <div className="text-sm text-blue-300 font-mono">{shortAddr(agent1)}</div>
-            <div className="text-slate-500 font-bold">⚔️</div>
-            <div className="text-sm text-red-300 font-mono">
-              {isAccepted || isCompleted ? shortAddr(agent2) : "???"}
+            <div className={`text-sm font-medium ${isCompleted && a1Won ? "text-yellow-300" : "text-blue-300"}`}>
+              {a1Info.emoji} {a1Info.alias || shortAddr(agent1)}
+            </div>
+            <div className="text-slate-500 font-bold text-xs">vs</div>
+            <div className={`text-sm font-medium ${isCompleted && !a1Won ? "text-yellow-300" : "text-red-300"}`}>
+              {isAccepted || isCompleted
+                ? `${a2Info.emoji} ${a2Info.alias || shortAddr(agent2)}`
+                : <span className="text-slate-500 italic">Waiting for challenger…</span>
+              }
             </div>
           </div>
-          {isCompleted && winner && winner !== "0x0000000000000000000000000000000000000000" && (
-            <div className="mt-2 text-xs text-yellow-400">
-              🏆 Winner: {shortAddr(winner)}
+          {hasWinner && (
+            <div className="mt-1.5 text-xs text-yellow-400">
+              🏆 {a1Won ? a1Info.alias : a2Info.alias} wins {parseFloat(formatEther(wagerAmount * 2n * 95n / 100n)).toFixed(1)} SEAS
             </div>
           )}
         </div>
@@ -227,12 +466,29 @@ function MatchCard({ matchId, wagerArena }: { matchId: bigint; wagerArena: Retur
           <div className="text-xs text-slate-500">SEAS</div>
         </div>
       </div>
+
+      {/* Player challenge button */}
+      {canAccept && (
+        <div className="mt-3 pt-3 border-t border-slate-700/50">
+          <button
+            onClick={handleAcceptAndBattle}
+            disabled={isPending}
+            className="w-full py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold rounded-lg transition-colors disabled:opacity-50"
+          >
+            {isPending ? "⏳ Processing…" : `⚔️ Challenge this Agent — Stake ${parseFloat(formatEther(wagerAmount)).toFixed(0)} SEAS`}
+          </button>
+          <p className="text-xs text-slate-500 mt-1 text-center">
+            You vs the AI agent. Winner takes ~{parseFloat(formatEther(wagerAmount * 2n * 95n / 100n)).toFixed(0)} SEAS (5% house fee)
+          </p>
+        </div>
+      )}
+      {txStatus && <p className="mt-2 text-xs text-slate-300">{txStatus}</p>}
     </div>
   );
 }
 
 function MatchesTab() {
-  const { wagerArena } = useArenaContracts();
+  const { wagerArena, agentController } = useArenaContracts();
   const account = useActiveAccount();
   const { mutate: sendTransaction, isPending } = useSendTransaction();
 
@@ -240,104 +496,106 @@ function MatchesTab() {
     contract: wagerArena,
     method: "function getOpenMatches() external view returns (uint256[] memory)",
     params: [],
+    refetchInterval: 10_000,
   });
 
   const { data: recentMatchIds, refetch: refetchRecent } = useReadContract({
     contract: wagerArena,
     method: "function getRecentMatches(uint256 count) external view returns (uint256[] memory)",
-    params: [10n],
+    params: [20n],
+    refetchInterval: 15_000,
   });
 
   const [wagerAmount, setWagerAmount] = useState("100");
   const [txStatus, setTxStatus] = useState("");
 
-  const openIds: bigint[] = (openMatchIds as bigint[]) ?? [];
+  const openIds: bigint[]   = (openMatchIds as bigint[]) ?? [];
   const recentIds: bigint[] = (recentMatchIds as bigint[]) ?? [];
+
+  // Merge: open first, then recent (deduped)
+  const openSet = new Set(openIds.map(String));
+  const allIds  = [
+    ...openIds,
+    ...recentIds.filter(id => !openSet.has(id.toString())),
+  ].slice(0, 30);
 
   async function handleCreateMatch() {
     if (!account) return;
     setTxStatus("Approving SEAS…");
-    try {
-      const addresses = getContractAddresses();
-      const chain = getActiveChain();
-      const seasToken = getContract({
-        client, chain,
-        address: addresses.SEASToken,
-        abi: CONTRACT_ABIS.SEASToken as any[],
-      });
-      const amount = parseEther(wagerAmount);
+    const addresses = getContractAddresses();
+    const chain = getActiveChain();
+    const seasToken = getContract({
+      client, chain,
+      address: addresses.SEASToken,
+      abi: CONTRACT_ABIS.SEASToken as any[],
+    });
+    const amount = parseEther(wagerAmount);
 
-      // Approve first
-      const approveTx = prepareContractCall({
-        contract: seasToken,
-        method: "function approve(address spender, uint256 amount) returns (bool)",
-        params: [addresses.WagerArena, amount],
-      });
-      sendTransaction(approveTx, {
-        onSuccess: () => {
-          setTxStatus("Creating match…");
-          const createTx = prepareContractCall({
-            contract: wagerArena,
-            method: "function createMatch(uint256 wagerAmount) external returns (uint256 matchId)",
-            params: [amount],
-          });
-          sendTransaction(createTx, {
-            onSuccess: () => {
-              setTxStatus("✅ Match created!");
-              refetchOpen();
-              refetchRecent();
-              setTimeout(() => setTxStatus(""), 3000);
-            },
-            onError: (e) => setTxStatus(`❌ ${e.message}`),
-          });
-        },
-        onError: (e) => setTxStatus(`❌ ${e.message}`),
-      });
-    } catch (e: any) {
-      setTxStatus(`❌ ${e.message}`);
-    }
+    const approveTx = prepareContractCall({
+      contract: seasToken,
+      method: "function approve(address spender, uint256 amount) returns (bool)",
+      params: [addresses.WagerArena, amount],
+    });
+    sendTransaction(approveTx, {
+      onSuccess: () => {
+        setTxStatus("Creating match…");
+        const createTx = prepareContractCall({
+          contract: wagerArena,
+          method: "function createMatch(uint256 wagerAmount) external returns (uint256 matchId)",
+          params: [amount],
+        });
+        sendTransaction(createTx, {
+          onSuccess: () => {
+            setTxStatus("✅ Match created! Waiting for an agent to accept…");
+            refetchOpen();
+            refetchRecent();
+            setTimeout(() => setTxStatus(""), 5000);
+          },
+          onError: (e) => setTxStatus(`❌ ${e.message.slice(0, 80)}`),
+        });
+      },
+      onError: (e) => setTxStatus(`❌ ${e.message.slice(0, 80)}`),
+    });
   }
-
-  const allIds = Array.from(new Set([...openIds.map(String), ...recentIds.map(String)])).map(BigInt);
 
   return (
     <div>
       {/* Create match panel */}
-      {account && (
-        <div className="bg-slate-800/60 border border-slate-700/50 rounded-xl p-4 mb-6">
-          <h3 className="font-bold text-white mb-3">⚔️ Create a Wager Match</h3>
+      {account ? (
+        <div className="bg-slate-800/60 border border-slate-700/50 rounded-xl p-4 mb-5">
+          <h3 className="font-bold text-white mb-1">⚔️ Create a Wager Match</h3>
+          <p className="text-xs text-slate-400 mb-3">
+            Post a match — an AI agent will accept it within ~30s and you'll battle automatically.
+          </p>
           <div className="flex gap-3 items-end">
             <div className="flex-1">
-              <label className="text-xs text-slate-400 mb-1 block">SEAS Wager Amount</label>
+              <label className="text-xs text-slate-400 mb-1 block">SEAS Wager (1–1000)</label>
               <input
                 type="number"
-                min="10"
+                min="1"
                 max="1000"
                 value={wagerAmount}
                 onChange={e => setWagerAmount(e.target.value)}
                 className="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-blue-500"
               />
             </div>
-            <Button
-              onClick={handleCreateMatch}
-              disabled={isPending || !account}
-              className="shrink-0"
-            >
-              {isPending ? "Pending…" : "Challenge"}
+            <Button onClick={handleCreateMatch} disabled={isPending || !account} className="shrink-0">
+              {isPending ? "Pending…" : "Post Match"}
             </Button>
           </div>
           {txStatus && <p className="mt-2 text-sm text-slate-300">{txStatus}</p>}
         </div>
+      ) : (
+        <div className="bg-slate-800/40 border border-slate-700/40 rounded-xl p-4 mb-5 text-center">
+          <p className="text-sm text-slate-400">Connect wallet to challenge an agent</p>
+        </div>
       )}
 
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-xl font-bold text-white">Recent Matches</h2>
-        <button
-          onClick={() => { refetchOpen(); refetchRecent(); }}
-          className="text-sm text-blue-400 hover:text-blue-300"
-        >
-          🔄 Refresh
-        </button>
+      <div className="flex items-center justify-between mb-3">
+        <h2 className="text-lg font-bold text-white">
+          Open Challenges <span className="text-emerald-400">({openIds.length})</span>
+        </h2>
+        <span className="text-xs text-slate-500">↻ 10s</span>
       </div>
 
       {allIds.length === 0 ? (
@@ -348,7 +606,13 @@ function MatchesTab() {
       ) : (
         <div className="space-y-3">
           {allIds.map(id => (
-            <MatchCard key={id.toString()} matchId={id} wagerArena={wagerArena} />
+            <MatchCard
+              key={id.toString()}
+              matchId={id}
+              wagerArena={wagerArena}
+              agentController={agentController}
+              playerAddress={account?.address}
+            />
           ))}
         </div>
       )}
@@ -369,6 +633,7 @@ function TournamentsTab() {
     contract: tournamentArena,
     method: "function activeTournamentCount() view returns (uint256)",
     params: [],
+    refetchInterval: 15_000,
   });
 
   const [entryFee, setEntryFee] = useState("50");
@@ -405,8 +670,7 @@ function TournamentsTab() {
             <div>
               <label className="text-xs text-slate-400 mb-1 block">Entry Fee (SEAS)</label>
               <input
-                type="number"
-                min="10"
+                type="number" min="10"
                 value={entryFee}
                 onChange={e => setEntryFee(e.target.value)}
                 className="w-32 bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-blue-500"
@@ -416,17 +680,13 @@ function TournamentsTab() {
               <label className="text-xs text-slate-400 mb-1 block">Bracket Size</label>
               <div className="flex gap-2">
                 {([4, 8, 16] as const).map(n => (
-                  <button
-                    key={n}
-                    onClick={() => setMaxParticipants(n)}
+                  <button key={n} onClick={() => setMaxParticipants(n)}
                     className={`px-3 py-2 rounded-lg text-sm font-medium border transition-colors ${
                       maxParticipants === n
                         ? "bg-blue-600 border-blue-500 text-white"
                         : "bg-slate-900 border-slate-600 text-slate-300 hover:border-slate-500"
                     }`}
-                  >
-                    {n}
-                  </button>
+                  >{n}</button>
                 ))}
               </div>
             </div>
@@ -440,9 +700,7 @@ function TournamentsTab() {
 
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-xl font-bold text-white">Active Tournaments</h2>
-        <button onClick={() => refetch()} className="text-sm text-blue-400 hover:text-blue-300">
-          🔄 Refresh
-        </button>
+        <span className="text-xs text-slate-500">↻ 15s</span>
       </div>
 
       {tournamentIds.length === 0 ? (
@@ -473,6 +731,7 @@ function TournamentCard({
     contract: tournamentArena,
     method: "function getTournament(uint256 tournamentId) external view returns (uint256 entryFee, uint8 maxParticipants, uint8 currentParticipants, uint8 currentRound, bool isActive, address champion)",
     params: [tournamentId],
+    refetchInterval: 15_000,
   });
 
   if (!data) return null;
@@ -502,12 +761,8 @@ function TournamentCard({
           <div className="text-sm text-white mb-2">
             Bracket: {currentParticipants}/{maxParticipants} · Round {currentRound}
           </div>
-          {/* Bracket fill bar */}
           <div className="w-full bg-slate-700 rounded-full h-1.5">
-            <div
-              className="bg-blue-500 h-1.5 rounded-full transition-all"
-              style={{ width: `${progress}%` }}
-            />
+            <div className="bg-blue-500 h-1.5 rounded-full transition-all" style={{ width: `${progress}%` }} />
           </div>
           {hasChampion && (
             <div className="mt-2 text-xs text-yellow-400">
@@ -535,10 +790,11 @@ function PredictTab() {
   const account = useActiveAccount();
   const { mutate: sendTransaction, isPending } = useSendTransaction();
 
-  const { data: predictionCount } = useReadContract({
+  const { data: predictionCount, refetch } = useReadContract({
     contract: predictionMarket,
     method: "function predictionCounter() view returns (uint256)",
     params: [],
+    refetchInterval: 15_000,
   });
 
   const count = Number(predictionCount ?? 0n);
@@ -618,10 +874,11 @@ function PredictionCard({
     contract: predictionMarket,
     method: "function getPrediction(uint256 predictionId) external view returns (uint256 matchId, uint256 agent1Pool, uint256 agent2Pool, bool isSettled, address winner)",
     params: [predictionId],
+    refetchInterval: 15_000,
   });
 
   const [betAmount, setBetAmount] = useState("10");
-  const [betSide, setBetSide] = useState<boolean>(true); // true = agent1
+  const [betSide, setBetSide] = useState<boolean>(true);
   const [txStatus, setTxStatus] = useState("");
 
   if (!data) return null;
@@ -630,7 +887,6 @@ function PredictionCard({
   const totalPool = agent1Pool + agent2Pool;
   const agent1Pct = totalPool > 0n ? Number((agent1Pool * 100n) / totalPool) : 50;
   const agent2Pct = 100 - agent1Pct;
-
   const hasWinner = winner && winner !== "0x0000000000000000000000000000000000000000";
 
   function handleBet() {
@@ -638,13 +894,11 @@ function PredictionCard({
     const amount = parseEther(betAmount);
     setTxStatus("Approving SEAS…");
     const addresses = getContractAddresses();
-
     const approveTx = prepareContractCall({
       contract: seasToken,
       method: "function approve(address spender, uint256 amount) returns (bool)",
       params: [addresses.PredictionMarket, amount],
     });
-
     sendTransaction(approveTx, {
       onSuccess: () => {
         setTxStatus("Placing bet…");
@@ -654,14 +908,11 @@ function PredictionCard({
           params: [predictionId, betSide],
         });
         sendTransaction(betTx, {
-          onSuccess: () => {
-            setTxStatus("✅ Bet placed!");
-            setTimeout(() => setTxStatus(""), 3000);
-          },
-          onError: (e) => setTxStatus(`❌ ${e.message}`),
+          onSuccess: () => { setTxStatus("✅ Bet placed!"); setTimeout(() => setTxStatus(""), 3000); },
+          onError: (e) => setTxStatus(`❌ ${e.message.slice(0, 60)}`),
         });
       },
-      onError: (e) => setTxStatus(`❌ ${e.message}`),
+      onError: (e) => setTxStatus(`❌ ${e.message.slice(0, 60)}`),
     });
   }
 
@@ -673,11 +924,8 @@ function PredictionCard({
       params: [predictionId],
     });
     sendTransaction(claimTx, {
-      onSuccess: () => {
-        setTxStatus("✅ Claimed!");
-        setTimeout(() => setTxStatus(""), 3000);
-      },
-      onError: (e) => setTxStatus(`❌ ${e.message}`),
+      onSuccess: () => { setTxStatus("✅ Claimed!"); setTimeout(() => setTxStatus(""), 3000); },
+      onError: (e) => setTxStatus(`❌ ${e.message.slice(0, 60)}`),
     });
   }
 
@@ -729,42 +977,30 @@ function PredictionCard({
             <button
               onClick={() => setBetSide(true)}
               className={`px-2 py-1 rounded text-xs font-medium border transition-colors ${
-                betSide
-                  ? "bg-blue-600 border-blue-500 text-white"
-                  : "bg-slate-900 border-slate-600 text-slate-400 hover:border-slate-500"
+                betSide ? "bg-blue-600 border-blue-500 text-white" : "bg-slate-900 border-slate-600 text-slate-400 hover:border-slate-500"
               }`}
-            >
-              🔵 Agent 1
-            </button>
+            >🔵 Agent 1</button>
             <button
               onClick={() => setBetSide(false)}
               className={`px-2 py-1 rounded text-xs font-medium border transition-colors ${
-                !betSide
-                  ? "bg-red-600 border-red-500 text-white"
-                  : "bg-slate-900 border-slate-600 text-slate-400 hover:border-slate-500"
+                !betSide ? "bg-red-600 border-red-500 text-white" : "bg-slate-900 border-slate-600 text-slate-400 hover:border-slate-500"
               }`}
-            >
-              🔴 Agent 2
-            </button>
+            >🔴 Agent 2</button>
           </div>
           <input
-            type="number"
-            min="1"
-            value={betAmount}
+            type="number" min="1" value={betAmount}
             onChange={e => setBetAmount(e.target.value)}
             className="w-20 bg-slate-900 border border-slate-600 rounded px-2 py-1 text-white text-xs focus:outline-none focus:border-purple-500"
             placeholder="SEAS"
           />
           <button
-            onClick={handleBet}
-            disabled={isPending}
+            onClick={handleBet} disabled={isPending}
             className="px-3 py-1 bg-purple-600 hover:bg-purple-500 text-white text-xs font-medium rounded transition-colors disabled:opacity-50"
           >
             {isPending ? "…" : "Bet"}
           </button>
         </div>
       )}
-
       {txStatus && <p className="mt-2 text-xs text-slate-300">{txStatus}</p>}
     </div>
   );
@@ -780,10 +1016,11 @@ function SEASFaucetButton() {
   const { mutate: sendTransaction, isPending } = useSendTransaction();
   const [status, setStatus] = useState("");
 
-  const { data: balance } = useReadContract({
+  const { data: balance, refetch } = useReadContract({
     contract: seasToken,
     method: "function balanceOf(address account) view returns (uint256)",
     params: [account?.address ?? "0x0000000000000000000000000000000000000000"],
+    refetchInterval: 15_000,
   });
 
   if (!account) return null;
@@ -792,12 +1029,13 @@ function SEASFaucetButton() {
     setStatus("Claiming…");
     const tx = prepareContractCall({
       contract: seasToken,
-      method: "function claimTestTokens()",
+      method: "function claimFaucet()",
       params: [],
     });
     sendTransaction(tx, {
       onSuccess: () => {
         setStatus("✅ 10,000 SEAS claimed!");
+        refetch();
         setTimeout(() => setStatus(""), 4000);
       },
       onError: (e) => setStatus(`❌ ${e.message.slice(0, 60)}`),
@@ -814,11 +1052,10 @@ function SEASFaucetButton() {
         <div className="text-xs text-slate-400">Testnet token for wagering &amp; predictions</div>
       </div>
       <button
-        onClick={handleClaim}
-        disabled={isPending}
+        onClick={handleClaim} disabled={isPending}
         className="shrink-0 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-medium rounded-lg transition-colors disabled:opacity-50"
       >
-        {isPending ? "…" : "Faucet"}
+        {isPending ? "…" : "Faucet +10K"}
       </button>
       {status && <span className="text-xs text-slate-300 ml-1">{status}</span>}
     </div>
@@ -833,9 +1070,9 @@ type Tab = "leaderboard" | "matches" | "tournaments" | "predict";
 
 const TABS: { id: Tab; label: string; emoji: string }[] = [
   { id: "leaderboard", label: "Leaderboard", emoji: "🏆" },
-  { id: "matches", label: "Matches", emoji: "⚔️" },
+  { id: "matches",     label: "Matches",     emoji: "⚔️" },
   { id: "tournaments", label: "Tournaments", emoji: "🎖️" },
-  { id: "predict", label: "Predict", emoji: "🔮" },
+  { id: "predict",     label: "Predict",     emoji: "🔮" },
 ];
 
 export default function ArenaPage() {
@@ -863,7 +1100,7 @@ export default function ArenaPage() {
           </div>
           <div className="flex items-center gap-1.5">
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-            <span className="text-xs text-emerald-400">Live</span>
+            <span className="text-xs text-emerald-400">Live · ↻15s</span>
           </div>
         </div>
       </div>
@@ -881,7 +1118,7 @@ export default function ArenaPage() {
           <div className="text-4xl mb-2">🏴‍☠️</div>
           <h2 className="text-xl font-bold text-white mb-1">Five Captains of the Seas</h2>
           <p className="text-sm text-slate-300 max-w-sm mx-auto">
-            Five autonomous AI agents — each with a unique strategy — battle on Monad for SEAS tokens and ELO glory. Watch live, predict outcomes, or enter your own ship.
+            Five autonomous AI agents — each with a unique strategy — battle on Monad for SEAS tokens and ELO glory. Watch live, predict outcomes, or challenge them yourself.
           </p>
           <div className="flex justify-center gap-3 mt-4 flex-wrap">
             {Object.entries(AGENT_TYPES).map(([id, info]) => (
@@ -917,13 +1154,13 @@ export default function ArenaPage() {
 
         {/* Tab content */}
         <div>
-          {activeTab === "leaderboard" && <LeaderboardTab />}
-          {activeTab === "matches" && <MatchesTab />}
-          {activeTab === "tournaments" && <TournamentsTab />}
-          {activeTab === "predict" && <PredictTab />}
+          {activeTab === "leaderboard"  && <LeaderboardTab />}
+          {activeTab === "matches"      && <MatchesTab />}
+          {activeTab === "tournaments"  && <TournamentsTab />}
+          {activeTab === "predict"      && <PredictTab />}
         </div>
 
-        {/* Footer info */}
+        {/* Footer */}
         <div className="mt-8 pt-4 border-t border-slate-800 text-center text-xs text-slate-600">
           Seven Seas Protocol · Built on Monad · Powered by Groq AI
         </div>
