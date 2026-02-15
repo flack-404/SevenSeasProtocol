@@ -1,5 +1,7 @@
 "use client";
 
+export const dynamic = "force-dynamic";
+
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import {
@@ -317,7 +319,7 @@ function BattleModal({
                 unoptimized
               />
             </div>
-            <div className="text-center text-xs text-white text-shadow-full-outline mt-1 scale-x-[-1]">
+            <div className="text-center text-xs text-white text-shadow-full-outline mt-1">
               {agentEmoji} {agentAlias}
             </div>
           </div>
@@ -671,7 +673,7 @@ function TauntFeed({ wagerArenaAddress, agentController }: {
             toBlock: "latest",
             topics: [
               // keccak256("AgentTaunt(address,address,string,uint256)")
-              "0xb8fd89de8a2dc45c153fcef64a3e1f5da50a491af26e3b52c16abd12b15f7831"
+              "0x16d3783672507acbe73ed774b9faca828fc06e7645424f39e354427d6b9bc894"
             ],
           }],
         }),
@@ -691,7 +693,8 @@ function TauntFeed({ wagerArenaAddress, agentController }: {
         for (let i = 0; i < strHex.length; i += 2) {
           message += String.fromCharCode(parseInt(strHex.slice(i, i + 2), 16));
         }
-        const tsHex = data.slice(192, 256);
+        // timestamp is the second non-indexed param: bytes 32-63 = hex chars 64-127
+        const tsHex = data.slice(64, 128);
         const timestamp = parseInt(tsHex, 16);
         return { from: from.toLowerCase(), target: target.toLowerCase(), message, timestamp, key: log.transactionHash + log.logIndex };
       }).reverse();
@@ -706,31 +709,43 @@ function TauntFeed({ wagerArenaAddress, agentController }: {
     return () => clearInterval(interval);
   }, [fetchTaunts]);
 
-  // Fetch aliases for seen addresses
+  // Fetch aliases for seen addresses using agents() ABI call
   useEffect(() => {
     const addrs = [...new Set(taunts.flatMap(t => [t.from, t.target]).filter(a =>
       a !== "0x0000000000000000000000000000000000000000" && !agentAliases[a]
     ))];
     addrs.forEach(async (addr) => {
+      let alias = shortAddr(addr);
       try {
-        const rpc = process.env.NEXT_PUBLIC_RPC_URL || "http://127.0.0.1:8545";
+        const rpc = process.env.NEXT_PUBLIC_RPC_URL || process.env.NEXT_PUBLIC_MONAD_RPC_URL || "http://127.0.0.1:8545";
+        // cast sig "agents(address)" = 0xfd66091e
         const res = await fetch(rpc, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             jsonrpc: "2.0", id: 1, method: "eth_call",
-            params: [{
-              to: agentController.address,
-              data: "0x4b2cef6d" + addr.slice(2).padStart(64, "0"),
-            }, "latest"],
+            params: [{ to: agentController.address, data: "0xfd66091e" + addr.slice(2).padStart(64, "0") }, "latest"],
           }),
         });
         const json = await res.json();
-        if (json.result && json.result !== "0x") {
-          // agents() returns tuple — agentAlias is last field, skip for now, use shortAddr
+        const hex = json.result;
+        if (hex && hex !== "0x" && hex.length > 2) {
+          // tuple: (address,uint8,uint256,uint256,uint256,uint256,uint256,bool,string)
+          // 8 static fields (8*64 hex chars) + offset to string (64 hex chars)
+          const d = hex.slice(2); // strip 0x
+          // offset to agentAlias string is at position 8*64 = 512
+          const strOffsetHex = d.slice(8 * 64, 9 * 64);
+          const strOffset = parseInt(strOffsetHex, 16) * 2;
+          const strLenHex = d.slice(strOffset, strOffset + 64);
+          const strLen = parseInt(strLenHex, 16) * 2;
+          const strHex = d.slice(strOffset + 64, strOffset + 64 + strLen);
+          let decoded = "";
+          for (let i = 0; i < strHex.length; i += 2)
+            decoded += String.fromCharCode(parseInt(strHex.slice(i, i + 2), 16));
+          if (decoded.trim()) alias = decoded.trim();
         }
       } catch { /* ignore */ }
-      setAgentAliases(prev => ({ ...prev, [addr]: shortAddr(addr) }));
+      setAgentAliases(prev => ({ ...prev, [addr]: alias }));
     });
   }, [taunts, agentController.address, agentAliases]);
 
@@ -1424,7 +1439,7 @@ function PredictionCard({
     const approveTx = prepareContractCall({
       contract: seasToken,
       method: "function approve(address spender, uint256 amount) returns (bool)",
-      params: [addresses.PredictionMarket, amount],
+      params: [addresses.PredictionMarket, BigInt("115792089237316195423570985008687907853269984665640564039457584007913129639935")],
     });
     sendTransaction(approveTx, {
       onSuccess: () => {
@@ -2068,7 +2083,7 @@ export default function ArenaPage() {
         </div>
 
         <div className="pb-6 text-center text-xs text-yellow-900">
-          Seven Seas Protocol · Built on Monad · Powered by Groq AI
+          Seven Seas Protocol · Built on Monad
         </div>
       </div>
     </div>

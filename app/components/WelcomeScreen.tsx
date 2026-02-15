@@ -357,7 +357,7 @@ export const WelcomeScreen = () => {
             {isMusicPlaying ? <Image src="/music_on.gif" alt="Sound" width={40} height={40} /> : <Image src="/music_off.gif" alt="Mute" width={40} height={40} />}
           </button>
           {showModal && <button className="hover:opacity-100 transition-opacity duration-200 text-white opacity-50 absolute text-center  border-white/10 bottom-0 left-0 w-full h-[50px] z-10">
-          Made with love and rum on <a href="https://monad.xyz/" target="_blank" className="text-[hsla(152,100%,62%,1)] !cursor-pointer">Monad</a>  by <a href="http://github.com/Kaustubh-404/" target="_blank" className="text-[hsla(152,100%,62%,1)] !cursor-pointer">Kaustubh Pardeshi</a>
+          Made with love and rum on <a href="https://monad.xyz/" target="_blank" className="text-[hsla(152,100%,62%,1)] !cursor-pointer">Monad</a>
           </button>}
     </>
   );

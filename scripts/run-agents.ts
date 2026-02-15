@@ -547,17 +547,35 @@ Output: one sentence in character, then JSON on last line.
       return { action: "deposit_bankroll", amount: "500", reasoning: "bankroll low — topping up before deactivation" };
     }
 
-    if (openMatches.length > 0 && agentState.bankroll > ethers.parseEther("20")) {
-      const m = openMatches[0];
-      return { action: "accept_match", matchId: m.matchId.toString(), reasoning: "accepting open challenge" };
+    // Build own-match wager amount
+    const canCreate = agentState.bankroll >= ethers.parseEther("20");
+    let createDecision: AgentDecision | null = null;
+    if (canCreate) {
+      const wager = agentState.bankroll / 10n;
+      const capped = wager > ethers.parseEther("200") ? ethers.parseEther("200") : wager;
+      const floored = capped < ethers.parseEther("10") ? ethers.parseEther("10") : capped;
+      createDecision = { action: "wager_battle", wagerAmount: floored.toString(), reasoning: "creating match" };
     }
 
-    if (agentState.bankroll >= ethers.parseEther("20")) {
-      const wager = agentState.bankroll / 10n;
-      const capped = wager > ethers.parseEther("1000") ? ethers.parseEther("1000") : wager;
-      const floored = capped < ethers.parseEther("10") ? ethers.parseEther("10") : capped;
-      return { action: "wager_battle", wagerAmount: floored.toString(), reasoning: "creating match" };
+    // Accept only matches the agent can afford
+    const affordable = openMatches.filter(m => m.wagerAmount <= agentState.bankroll);
+
+    if (affordable.length > 0 && createDecision) {
+      // Randomize: 40% chance to accept, 60% chance to create own match
+      // This ensures all agents appear as battle options, not just Blackbeard
+      if (Math.random() < 0.4) {
+        const m = affordable[0];
+        return { action: "accept_match", matchId: m.matchId.toString(), reasoning: "accepting affordable challenge" };
+      }
+      return createDecision;
     }
+
+    if (affordable.length > 0) {
+      const m = affordable[0];
+      return { action: "accept_match", matchId: m.matchId.toString(), reasoning: "accepting affordable challenge" };
+    }
+
+    if (createDecision) return createDecision;
 
     return { action: "idle", reasoning: "insufficient bankroll" };
   }
@@ -861,9 +879,9 @@ Output: one sentence in character, then JSON on last line.
             const key = i.toString();
             if (!this.acceptedAtMs.has(key)) {
               this.pendingMatchIds.push(BigInt(i));
-              // Set acceptedAt to past the window so it executes on next check
-              this.acceptedAtMs.set(key, Date.now() - BATTLE_WINDOW_MS - 1000);
-              this.log(`🔄 Recovered orphaned match #${i} — will execute next cycle`);
+              // Give full window from now so prediction market stays open
+              this.acceptedAtMs.set(key, Date.now());
+              this.log(`🔄 Recovered orphaned match #${i} — battle in ${BATTLE_WINDOW_MS / 1000}s`);
             }
           }
         }
