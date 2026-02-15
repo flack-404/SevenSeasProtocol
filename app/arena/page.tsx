@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import {
   useActiveAccount,
@@ -206,6 +206,8 @@ function BattleModal({
   status,
   result,
   payout,
+  countdown,
+  onExecuteNow,
 }: {
   isOpen: boolean;
   onClose: () => void;
@@ -214,6 +216,8 @@ function BattleModal({
   status: string;
   result?: "win" | "lose" | null;
   payout?: string;
+  countdown?: number | null;
+  onExecuteNow?: () => void;
 }) {
   const [explosion1Url, setExplosion1Url] = useState<string | null>(null);
   const [explosion2Url, setExplosion2Url] = useState<string | null>(null);
@@ -370,7 +374,13 @@ function BattleModal({
         {/* Status bar below scene */}
         <div className="ui2 p-4 text-center">
           <div className="text-white text-sm text-shadow-full-outline min-h-[20px]">
-            {status || (
+            {countdown !== null && countdown !== undefined && countdown > 0 ? (
+              <div>
+                <span>⚔️ Battle in <span className="text-yellow-300 font-bold tabular-nums">{countdown}s</span> — predictions are open!</span>
+              </div>
+            ) : status ? (
+              status
+            ) : (
               <div className="flex justify-center gap-2">
                 {["⚓", "⚓", "⚓"].map((s, i) => (
                   <span key={i} className="animate-bounce text-xl" style={{ animationDelay: `${i * 0.15}s` }}>{s}</span>
@@ -378,6 +388,15 @@ function BattleModal({
               </div>
             )}
           </div>
+          {/* Manual execute button — shown when countdown is under 10s or at 0 */}
+          {countdown !== null && countdown !== undefined && countdown <= 10 && countdown >= 0 && !result && onExecuteNow && (
+            <button
+              onClick={onExecuteNow}
+              className="ui3 px-8 py-2 mt-3 text-white font-bold text-sm animate-pulse"
+            >
+              ⚔️ Execute Battle Now
+            </button>
+          )}
           {isDone && !result && (
             <button onClick={onClose} className="ui3 px-8 py-2 mt-3 text-white font-bold text-sm">
               Close
@@ -792,6 +811,20 @@ function MatchesTab() {
   const [watchMatchId,    setWatchMatchId]    = useState<bigint>(0n);
   const [watchPlayerAddr, setWatchPlayerAddr] = useState("");
   const [watchPayoutWei,  setWatchPayoutWei]  = useState<bigint>(0n);
+  const [countdown,       setCountdown]       = useState<number | null>(null);
+
+  // Timers for auto-executing battle after prediction window
+  const execTimerRef      = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const countdownRef      = useRef<ReturnType<typeof setInterval> | null>(null);
+  const execMatchIdRef    = useRef<bigint>(0n);
+
+  // Cleanup timers on unmount
+  useEffect(() => {
+    return () => {
+      if (execTimerRef.current) clearTimeout(execTimerRef.current);
+      if (countdownRef.current) clearInterval(countdownRef.current);
+    };
+  }, []);
 
   const { data: openMatchIds } = useReadContract({
     contract: wagerArena,
@@ -808,12 +841,18 @@ function MatchesTab() {
     refetchInterval: watchMatchId > 0n ? 5_000 : undefined,
   });
 
-  // Detect completion
+  // Detect completion — clears timers when battle resolves (by agent or player)
   useEffect(() => {
     if (!watchedMatch || watchMatchId === 0n) return;
     const d = watchedMatch as any;
     const isCompleted = d[4] ?? d.isCompleted;
     if (!isCompleted) return;
+
+    // Battle finished — cancel any pending auto-execute timer
+    if (execTimerRef.current) { clearTimeout(execTimerRef.current); execTimerRef.current = null; }
+    if (countdownRef.current) { clearInterval(countdownRef.current); countdownRef.current = null; }
+    setCountdown(null);
+
     const winnerAddr = ((d[5] ?? d.winner) as string) || "";
     const won = !!winnerAddr && winnerAddr.toLowerCase() === watchPlayerAddr.toLowerCase();
     setBattleStatus("✅ Battle complete!");
@@ -834,6 +873,53 @@ function MatchesTab() {
     return `❌ ${msg.slice(0, 80)}`;
   }
 
+  // Start countdown + auto-execute timer after a match is accepted
+  function startBattleCountdown(matchId: bigint) {
+    const EXECUTE_DELAY_S = 95; // slightly past the 90s agent window
+
+    // Clear any previous timers
+    if (execTimerRef.current) clearTimeout(execTimerRef.current);
+    if (countdownRef.current) clearInterval(countdownRef.current);
+
+    setCountdown(EXECUTE_DELAY_S);
+    execMatchIdRef.current = matchId;
+
+    // Tick countdown every second
+    countdownRef.current = setInterval(() => {
+      setCountdown(prev => {
+        if (prev === null || prev <= 1) {
+          if (countdownRef.current) clearInterval(countdownRef.current);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    // After delay, player auto-calls executeBattle (wallet will prompt confirmation)
+    execTimerRef.current = setTimeout(() => {
+      setBattleStatus("⚔️ Executing battle from your wallet…");
+      const execTx = prepareContractCall({
+        contract: wagerArena,
+        method: "function executeBattle(uint256 matchId) external",
+        params: [matchId],
+      });
+      sendTransaction(execTx, {
+        onSuccess: () => {
+          setBattleStatus("⚔️ Battle executed! Loading result…");
+        },
+        onError: (e) => {
+          const msg = String(e);
+          // Agent might have executed first — the poll will catch it
+          if (msg.includes("Already completed")) {
+            setBattleStatus("⚔️ Battle already resolved — loading result…");
+          } else {
+            setBattleStatus(friendlyError(e));
+          }
+        },
+      });
+    }, EXECUTE_DELAY_S * 1000);
+  }
+
   function handleChallenge(matchId: bigint, wagerAmount: bigint, agentAlias: string, agentEmoji: string) {
     if (!account) return;
     setActiveAlias(agentAlias);
@@ -841,6 +927,7 @@ function MatchesTab() {
     setBattleOpen(true);
     setBattleResult(null);
     setBattlePayout("");
+    setCountdown(null);
     setBattleStatus("Approving SEAS…");
 
     const addresses = getContractAddresses();
@@ -859,11 +946,13 @@ function MatchesTab() {
         });
         sendTransaction(acceptTx, {
           onSuccess: () => {
-            setBattleStatus("⚔️ You've entered the arena! Battle begins in ~90s — stay on this page…");
+            setBattleStatus("⚔️ Challenge accepted! Prediction window open…");
             // Hand off to hook-based poller
             setWatchMatchId(matchId);
             setWatchPlayerAddr(account.address);
             setWatchPayoutWei(wagerAmount * 2n * 95n / 100n);
+            // Start countdown — player auto-executes after 95s if agent hasn't
+            startBattleCountdown(matchId);
           },
           onError: (e) => setBattleStatus(friendlyError(e)),
         });
@@ -917,12 +1006,42 @@ function MatchesTab() {
       {/* Battle modal — owned by tab so it survives card unmounts */}
       <BattleModal
         isOpen={battleOpen}
-        onClose={() => { setBattleOpen(false); setBattleResult(null); }}
+        onClose={() => {
+          setBattleOpen(false);
+          setBattleResult(null);
+          setCountdown(null);
+          if (execTimerRef.current) { clearTimeout(execTimerRef.current); execTimerRef.current = null; }
+          if (countdownRef.current) { clearInterval(countdownRef.current); countdownRef.current = null; }
+        }}
         agentAlias={activeAlias}
         agentEmoji={activeEmoji}
         status={battleStatus}
         result={battleResult}
         payout={battlePayout}
+        countdown={countdown}
+        onExecuteNow={() => {
+          // Cancel auto-execute timer — player clicked manually
+          if (execTimerRef.current) { clearTimeout(execTimerRef.current); execTimerRef.current = null; }
+          if (countdownRef.current) { clearInterval(countdownRef.current); countdownRef.current = null; }
+          setCountdown(null);
+          setBattleStatus("⚔️ Executing battle…");
+          const execTx = prepareContractCall({
+            contract: wagerArena,
+            method: "function executeBattle(uint256 matchId) external",
+            params: [execMatchIdRef.current],
+          });
+          sendTransaction(execTx, {
+            onSuccess: () => setBattleStatus("⚔️ Battle executed! Loading result…"),
+            onError: (e) => {
+              const msg = String(e);
+              if (msg.includes("Already completed")) {
+                setBattleStatus("⚔️ Battle already resolved — loading result…");
+              } else {
+                setBattleStatus(friendlyError(e));
+              }
+            },
+          });
+        }}
       />
     </div>
   );
