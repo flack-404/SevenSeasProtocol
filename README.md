@@ -1,432 +1,423 @@
 <div align="center">
-  <img src="./public/logo_high.png" alt="Seven Seas Protocol Logo" width="300" height="300">
+  <img src="./public/logo_high.png" alt="Seven Seas Protocol" width="200" height="200">
 
-  # 🏴‍☠️ Seven Seas Protocol
+  # Seven Seas Protocol
 
-  **Conquer the Seven Seas on Mantle Network**
+  **Autonomous AI Pirates Battle On-Chain for SEAS Tokens**
 
-  *A fully on-chain naval strategy game where you command your ship, explore vast oceans, engage in epic battles, form powerful guilds, mint yield-bearing NFTs, and rise through the ranks in this immersive blockchain-powered maritime adventure!*
+  Built on **Monad** | AI by **Groq** | Moltiverse Hackathon 2026
 
-  [![Mantle Network](https://img.shields.io/badge/Mantle-Network-blue)](https://www.mantle.xyz/)
-  [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-  [![Next.js 15](https://img.shields.io/badge/Next.js-15.3.2-black)](https://nextjs.org/)
-  [![Solidity 0.8.24](https://img.shields.io/badge/Solidity-0.8.24-blue)](https://soliditylang.org/)
+  [![Monad](https://img.shields.io/badge/Monad-Blockchain-purple?style=for-the-badge)](https://monad.xyz)
+  [![Groq](https://img.shields.io/badge/Groq-LLM_AI-orange?style=for-the-badge)](https://groq.com)
+  [![Next.js 15](https://img.shields.io/badge/Next.js-15-black?style=for-the-badge)](https://nextjs.org/)
+  [![Solidity](https://img.shields.io/badge/Solidity-0.8.24-blue?style=for-the-badge)](https://soliditylang.org/)
+
 </div>
 
 ---
 
-## 🌊 Overview
+## What is Seven Seas Protocol?
 
-**Seven Seas Protocol** is a fully on-chain naval strategy game that demonstrates Mantle Network's capabilities for high-performance GameFi applications. Players become naval commanders, choosing between the disciplined Navy or rebellious Pirates, while engaging in strategic gameplay powered entirely by smart contracts on Mantle Sepolia.
+Seven Seas Protocol is an on-chain pirate battle game where **5 autonomous AI agents** compete in real-time wager battles using SEAS tokens on the **Monad blockchain**.
 
-### 🎯 Mantle Hackathon Alignment
+Each AI agent has its own wallet, its own pirate personality, and makes strategic decisions every 30 seconds powered by **Groq's LLM (llama-3.3-70b-versatile)**. They create matches, accept challenges, bet on outcomes, upgrade ships, and fight for dominance — all autonomously.
 
-This project showcases Mantle's strengths for the **Mantle Global Hackathon 2025**:
+**Players can:**
 
-- ✅ **High-Performance GameFi**: Optimized for Mantle's low gas fees and fast block times (10-second GPM cycles)
-- ✅ **RWA Integration**: Ship NFTs as yield-bearing assets (foundation for future DeFi integration)
-- ✅ **DeFi Primitives**: ARMADA token with staking, Battle Pass economics, Guild treasury system
-- ✅ **Ecosystem Growth**: Social features (Guilds), competitive elements (Battle Pass), NFT marketplace-ready
-- ✅ **User Experience**: Smooth gameplay with Thirdweb v5, social login, and optimized transactions
+- **Challenge** AI agents to 1v1 wager battles and fight for SEAS tokens
+- **Predict** match outcomes via an on-chain prediction market
+- **Spectate** live AI-vs-AI battles in the Agent Arena
+- **Track** battle history, prediction performance, and net earnings
 
----
-
-## ✨ Key Features
-
-### 🎮 Core Gameplay
-- **🏴‍☠️ Faction System**: Choose Navy ⚓ or Pirates 🏴‍☠️
-- **⚔️ Strategic Combat**: Skill-based battles with damage calculations
-- **🚢 Ship Upgrades**: Enhance attack, defense, speed, and crew capacity
-- **🗺️ Ocean Exploration**: 100-location map with travel mechanics
-- **💰 Economic System**: Gold Per Minute (GPM), daily check-ins, crew management
-- **🔧 Repair System**: Multiple repair options (free, gold, diamond)
-- **🏆 Ranking System**: Global leaderboard with rewards
-
-### 🆕 Advanced Features
-
-#### ⚓ **Guilds System**
-- **Create & Join Guilds**: Form alliances with fellow pirates/navy
-- **Guild Treasury**: Shared resources from member victories
-- **Dividend System**: Claim your share of guild earnings
-- **Guild Wars**: Compete against other guilds (coming soon)
-- **Leadership & Officers**: Hierarchical guild structure
-
-#### 🎖️ **Battle Pass**
-- **Seasonal Progression**: Level up through gameplay
-- **Free & Premium Tiers**: Basic rewards for all, enhanced rewards for premium
-- **XP System**: Earn XP from battles, check-ins, upgrades, GPM claims
-- **Reward Tiers**: Gold, diamonds, and ARMADA tokens
-- **100 ARMADA Cost**: Premium upgrade using game token
-
-#### 🚢 **Ship NFTs (RWA Foundation)**
-- **Mint Ship NFTs**: Convert your ship into a tradeable ERC-721 asset
-- **Yield-Bearing Assets**: Ships generate passive ARMADA token yield
-- **APY Tiers**: 0.1% - 1.0% daily based on battle power
-- **Staking System**: Stake ships for 2x yield multiplier
-- **Ship Classes**: Sloop, Brigantine, Frigate, Man-of-War
-- **Secondary Market Ready**: Tradeable NFTs with on-chain metadata
-
-#### 💎 **ARMADA Token**
-- **ERC-20 Token**: Game's native utility token
-- **Earn from Gameplay**: Win battles, complete Battle Pass, claim NFT yield
-- **Staking Rewards**: Stake Ship NFTs for enhanced yield
-- **Premium Features**: Upgrade Battle Pass, future governance
-
-#### 🎁 **Referral System**
-- **Viral Growth Mechanics**: Invite friends and earn rewards
-- **Auto-Generated Codes**: Each player gets unique code (e.g., REF_A3F2B1)
-- **Two-Way Rewards**: Both referrer and new player benefit
-- **Referrer Rewards**: +50 ARMADA + 1 Diamond per successful referral
-- **New Player Bonus**: +100 ARMADA + 200 Gold + 1 Diamond
-- **Social Sharing**: Easy sharing via Twitter, Telegram, and direct links
-- **On-Chain Tracking**: All referrals tracked transparently on blockchain
+> The agents aren't bots running fixed scripts — they're LLM-powered strategists that read on-chain state, evaluate risk, and make real decisions with real tokens.
 
 ---
 
-## 🛠️ Technology Stack
+## Architecture Overview
 
-### 🎯 Frontend Technologies
-
-- **[Next.js 15.3.2](https://nextjs.org/)** - React framework with App Router
-- **[React 19](https://reactjs.org/)** - Latest React with concurrent features
-- **[TypeScript 5.8](https://www.typescriptlang.org/)** - Type-safe development
-- **[Tailwind CSS 4.0](https://tailwindcss.com/)** - Utility-first CSS framework
-- **[Framer Motion](https://www.framer.com/motion/)** - Smooth animations
-- **[PixiJS](https://pixijs.com/)** - High-performance 2D rendering
-- **[Sonner](https://sonner.emilkowal.ski/)** - Toast notifications
-
-### ⛓️ Blockchain & Web3
-
-- **[Mantle Network](https://www.mantle.xyz/)** - High-performance L2 with low fees
-- **[Thirdweb SDK v5](https://thirdweb.com/)** - Complete Web3 development platform
-- **[Viem](https://viem.sh/)** - Type-safe Ethereum client
-- **[Solidity 0.8.24](https://soliditylang.org/)** - Smart contract development
-- **[OpenZeppelin 5.3](https://openzeppelin.com/)** - Security-audited contract libraries
-
-### 🔧 Development Tools
-
-- **[Hardhat](https://hardhat.org/)** - Ethereum development environment
-- **[TypeChain](https://github.com/dethcrypto/TypeChain)** - TypeScript bindings
-- **[ESLint](https://eslint.org/)** - Code linting
-
-### 💳 Wallet Integration
-
-- **MetaMask** - Browser extension wallet
-- **Thirdweb In-App Wallet** - Social login (Google, Discord, Telegram)
-- **WalletConnect** - Mobile wallet support
+```
+ FRONTEND (Next.js 15 + Thirdweb v5)
+ ┌──────────────────────────────────────────────────┐
+ │  Leaderboard │ Matches │ Predict │ Bets │ Battles │
+ └──────────────────────┬───────────────────────────┘
+                        │ JSON-RPC
+ MONAD BLOCKCHAIN       │
+ ┌──────────────────────┼───────────────────────────┐
+ │                      │                           │
+ │  MantleArmada    SEASToken    AgentController     │
+ │  (Game Engine)   (ERC-20)    (Registry + ELO)     │
+ │       │                           │               │
+ │  WagerArena ──── PredictionMarket │               │
+ │  (1v1 Duels)    (Bet on winners)  │               │
+ │                                   │               │
+ │  TournamentArena  ShipNFT  ArmadaGuild  BattlePass│
+ └──────────────────────┬───────────────────────────┘
+                        │ JSON-RPC
+ AI AGENT FLEET         │
+ ┌──────────────────────┼───────────────────────────┐
+ │  Every 30s: Read state → Groq LLM → Execute tx   │
+ │                                                   │
+ │  🏴‍☠️ Blackbeard   ⚓ Ironclad   👻 TheGhost       │
+ │  🎖️ Admiralty     🌊 Tempest                      │
+ └───────────────────────────────────────────────────┘
+```
 
 ---
 
-## 📜 Smart Contracts (Mantle Sepolia)
+## The 5 AI Agents
 
-All contracts are verified on [Mantle Sepolia Explorer](https://sepolia.mantlescan.xyz):
+| # | Name | Emoji | Archetype | Strategy |
+|---|------|-------|-----------|----------|
+| 0 | **Blackbeard** | 🏴‍☠️ | Aggressive Raider | Wagers 20-30% bankroll, attacks constantly, repairs only below 40% HP |
+| 1 | **Ironclad** | ⚓ | Defensive Trader | Wagers 5-10% only with ELO advantage, prioritizes passive income |
+| 2 | **TheGhost** | 👻 | Adaptive Learner | Uses Kelly Criterion for optimal bet sizing, studies opponent patterns |
+| 3 | **Admiralty** | 🎖️ | Guild Coordinator | Medium risk (15%), crew-focused, maintains full crew at all times |
+| 4 | **Tempest** | 🌊 | Balanced Admiral | Adapts based on streak — aggressive on wins, defensive on losses |
 
-| Contract | Address | Purpose |
-|----------|---------|---------|
-| **MantleArmada** | `0x7dC53Ba9097B4E963A0b45B50030D0Fd56138C8A` | Main game logic + Referral + PvP |
-| **ArmadaToken** | `0x76C25bf63B05a286e967857080b230f762e29772` | ERC-20 utility token |
-| **ArmadaGuild** | `0x1dd10f7d8c5C558A936e62E2ace11F1353dc5a25` | Guild system |
-| **BattlePass** | `0xa3a52de616052408F1F571B52aCAa7609487fc31` | Seasonal progression |
-| **ShipNFT** | `0xB6048f00925E89c6266D041Cc00f232715B59d1a` | Yield-bearing NFTs |
+Each agent has its own wallet with MON (gas) and SEAS (wager currency). They autonomously perform 13 different on-chain actions including creating matches, accepting challenges, placing bets, repairing ships, and upgrading.
 
-**Network Details:**
-- Chain ID: `5003`
-- RPC: `https://rpc.sepolia.mantle.xyz`
-- Explorer: `https://sepolia.mantlescan.xyz`
-- Faucet: [Mantle Sepolia Faucet](https://faucet.sepolia.mantle.xyz)
+When the Groq API hits its daily limit (100K TPD free tier), agents seamlessly fall back to rule-based strategies matching their archetype — **zero downtime**.
 
 ---
 
-## 🎮 Game Mechanics
+## Smart Contracts (10 total)
 
-### 🏗️ Account Creation
-- Choose ship name (up to 12 characters)
-- Select faction: Navy ⚓ or Pirates 🏴‍☠️
-- Pick starting location (0-100 on map)
-- Begin with basic stats and 100 gold
+All contracts deployed on **Monad Testnet (chainId 10143)**.
 
-### ⚔️ Combat System
-- **Strategic Battles**: Attack stat vs Defense stat calculations
-- **Ship Destruction**: 0 HP ships teleport to nearest port
-- **Safe Zones**: Ports (25, 55, 89) are attack-free
-- **Loot System**: Winners steal gold based on crew size
-- **Faction Warfare**: Pirates can attack anyone (including other pirates), Navy can only attack Pirates
+| Contract | Purpose |
+|---|---|
+| **MantleArmada.sol** | Core game engine — ship stats, duels, GPM, locations, check-ins |
+| **SEASToken.sol** | ERC-20 token with testnet faucet (10K SEAS per claim) |
+| **AgentController.sol** | AI agent registry — ELO tracking, bankroll management, leaderboard |
+| **WagerArena.sol** | 1v1 wager battles — create/accept/execute, 5% protocol fee |
+| **PredictionMarket.sol** | Bet on match outcomes — proportional payout from loser pool |
+| **TournamentArena.sol** | Bracket tournaments with entry fees and champion rewards |
+| **ShipNFT.sol** | Ship NFT collection (ERC-721) |
+| **ArmadaGuild.sol** | Guild system for team play |
+| **ArmadaToken.sol** | In-game gold token (ARMD) |
+| **BattlePass.sol** | Season-based progression system |
 
-### 🚢 Ship Management
-- **Upgrades**: Attack, Defense, Speed, Max HP, Max Crew, GPM
-- **Exponential Pricing**: 1.5x multiplier per purchase
-- **Crew Hiring**: 10 gold per crew member at ports
-- **Repair Options**:
-  - **Free**: Time-based (30 min per 25 maxHP)
-  - **Gold**: Faster (5 min per 25 maxHP)
-  - **Diamond**: Instant repair
+### Key On-Chain Mechanics
 
-### 💰 Economic Features
-- **Daily Check-ins**: Earn gold + XP with streak bonuses
-- **Gold Per Minute (GPM)**: Passive income (10-second cycles on Mantle!)
-- **Diamond Purchases**: Premium currency with MNT
-- **Revenue Sharing**: Top 3 players get diamond purchase rewards
-
-### ⚓ Guild Features
-- **Create Guild**: 500 gold cost
-- **Join Existing**: Free to join open guilds
-- **Guild Treasury**: Funded by member victories (10% of loot)
-- **Dividends**: Members claim proportional share
-- **Guild Levels**: Grow guild through activity
-
-### 🎖️ Battle Pass Progression
-- **XP Sources**:
-  - Battle wins: 10 XP
-  - Daily check-ins: 5 XP
-  - GPM claims: 1 XP
-  - Ship upgrades: 3 XP
-- **Levels**: 100 levels per season
-- **Rewards Per Level**: Gold, Diamonds, ARMADA tokens
-- **Premium Benefits**: 2x rewards, exclusive cosmetics
-
-### 🚢 Ship NFT System
-- **Minting Requirements**: 10+ battle power
-- **Yield Calculation**: Based on ship power and time
-- **APY Tiers**:
-  - Power 10-25: 0.1% daily
-  - Power 26-50: 0.25% daily
-  - Power 51-100: 0.5% daily
-  - Power 100+: 1.0% daily
-- **Staking Bonus**: 2x yield when staked
-- **Claim Anytime**: Accumulated ARMADA tokens
+- **Wager Battles**: Lock SEAS in escrow -> opponent matches -> duel resolves -> winner gets 95% of pot
+- **90-Second Prediction Window**: After a match is accepted, spectators have 90 seconds to bet before execution
+- **Player Auto-Execute**: Frontend calls `executeBattle` after 95 seconds if the agent hasn't — player is never stuck waiting
+- **On-Chain ELO**: Agent ratings stored in AgentController — transparent, verifiable, immutable
+- **Auto-Deactivation**: Agents deactivate if bankroll drops below 100 SEAS, auto-reregister with 500 SEAS
 
 ---
 
-## 📜 Deployed Contracts (Mantle Testnet)
+## Arena Frontend
 
-| Contract Name | Environment Variable | Address |
-|--------------|----------------------|---------|
-| 🎮 Game Contract | `NEXT_PUBLIC_GAME_CONTRACT_ADDRESS` | `0x7dC53Ba9097B4E963A0b45B50030D0Fd56138C8A` |
-| 💎 ARMADA Token (ERC-20) | `NEXT_PUBLIC_ARMADA_TOKEN_ADDRESS` | `0x76C25bf63B05a286e967857080b230f762e29772` |
-| ⚓ Guild Contract | `NEXT_PUBLIC_GUILD_CONTRACT_ADDRESS` | `0x1dd10f7d8c5C558A936e62E2ace11F1353dc5a25` |
-| 🎖️ Battle Pass | `NEXT_PUBLIC_BATTLE_PASS_ADDRESS` | `0xa3a52de616052408F1F571B52aCAa7609487fc31` |
-| 🚢 Ship NFT (ERC-721) | `NEXT_PUBLIC_SHIP_NFT_ADDRESS` | `0xB6048f00925E89c6266D041Cc00f232715B59d1a` |
+The Arena (`/arena`) is the main player interface with 5 tabs:
+
+### Leaderboard
+- Live ELO rankings for all 5 AI agents
+- Win/loss records and win rate percentages
+- SEAS bankroll per agent
+- Rolling live battle feed with payouts
+
+### Matches
+- Open challenges created by AI agents
+- One-click "Challenge" button (approve SEAS + accept match)
+- Battle modal with pirate ship animation, explosions, damage numbers
+- **95-second countdown timer** — predictions are open during this window
+- "Execute Battle Now" button at 10 seconds remaining
+- Win/lose result overlay with payout amount
+
+### Predict
+- Active prediction markets for pending matches
+- Pool sizes and odds per side
+- Bet interface with SEAS amount
+- Settled predictions shown as compact history cards
+
+### My Bets
+- Scans recent predictions for user participation
+- Shows bet amount, side chosen, estimated payout
+- Claim button for winning bets
+
+### My Battles
+- Full battle history with opponents
+- Win/loss record and net SEAS earned/lost
 
 ---
 
-## 🚀 Getting Started
+## How the AI Decision Loop Works
+
+```
+Every 30 seconds per agent:
+
+  1. Read game state from MantleArmada
+     (HP, gold, GPM, location, crew, attack, defense)
+
+  2. Read agent state from AgentController
+     (ELO, bankroll, wins, losses)
+
+  3. Read open matches from WagerArena
+
+  4. Build compact prompt with all state data
+     → Send to Groq llama-3.3-70b-versatile
+
+  5. Parse JSON decision from LLM response
+     (one of 13 possible actions)
+
+  6. Sanity overrides — prevent LLM hallucinations:
+     • Block claim_gpm when claimable = 0
+     • Block hire_crew when not at port
+     • Floor float wager amounts to integers
+     • Auto re-register if deactivated
+     • Top up bankroll if < 200 SEAS
+
+  7. Execute on-chain transaction
+
+  If Groq fails (rate limit / error):
+  → Fall back to rule-based archetype strategy
+```
+
+### 13 Agent Actions
+
+| Action | Description |
+|---|---|
+| `wager_battle` | Create a new 1v1 wager match |
+| `accept_match` | Accept an open challenge |
+| `execute_battle` | Resolve a pending match (after 90s window) |
+| `claim_gpm` | Claim accumulated passive gold |
+| `repair_ship` | Repair damaged ship |
+| `hire_crew` | Hire crew at port |
+| `upgrade` | Buy ship upgrades (8 types) |
+| `check_in` | Daily check-in for XP/streak |
+| `join_tournament` | Enter a bracket tournament |
+| `place_bet` | Bet on a match in the prediction market |
+| `claim_winnings` | Claim prediction market payout |
+| `deposit_bankroll` | Top up SEAS bankroll |
+| `idle` | Skip this cycle |
+
+---
+
+## Tech Stack
+
+| Layer | Technology |
+|---|---|
+| **Blockchain** | Monad (testnet: 10143 / mainnet: 41454) |
+| **Smart Contracts** | Solidity 0.8.24, Hardhat, OpenZeppelin 5 |
+| **Frontend** | Next.js 15, React 19, TypeScript, Tailwind CSS |
+| **Wallet SDK** | Thirdweb v5 (ConnectButton, hooks, social login) |
+| **AI / LLM** | Groq API — llama-3.3-70b-versatile |
+| **Agent Runtime** | TypeScript + ethers.js v6, Node.js process |
+| **Token (mainnet)** | Launched on nad.fun (Monad's token launchpad) |
+
+---
+
+## Project Structure
+
+```
+seven-seas-protocol/
+├── app/                          # Next.js frontend
+│   ├── arena/page.tsx            # Agent Arena (main spectator + player UI)
+│   ├── components/               # Game components
+│   ├── libs/providers/           # Thirdweb provider + Monad chain config
+│   └── page.tsx                  # Homepage
+│
+├── contracts/                    # Solidity smart contracts (10)
+│   ├── MantleArmada.sol          # Core game engine
+│   ├── SEASToken.sol             # SEAS ERC-20
+│   ├── AgentController.sol       # Agent registry + ELO
+│   ├── WagerArena.sol            # 1v1 wager battles
+│   ├── PredictionMarket.sol      # Prediction market
+│   ├── TournamentArena.sol       # Bracket tournaments
+│   └── ...                       # ShipNFT, Guild, BattlePass, ArmadaToken
+│
+├── scripts/                      # Deploy + agent scripts
+│   ├── deploy-monad.js           # Full deploy (all 10 contracts)
+│   ├── redeploy-arena.js         # Redeploy arena contracts only
+│   ├── wire-monad.js             # Wire permissions + register agents
+│   ├── run-agents.ts             # AI agent fleet (5 agents)
+│   └── check-balance.js          # Check MON + SEAS balances
+│
+├── public/                       # Game assets (ships, ocean, sky, UI)
+├── lib/config.ts                 # Contract ABIs, addresses, chain config
+├── hardhat.config.js             # Hardhat config
+├── .env.example                  # Environment template
+└── DEV_UPDATE.md                 # Detailed development log
+```
+
+---
+
+## Getting Started
 
 ### Prerequisites
 
-- Node.js 18+ and pnpm
-- MetaMask or Web3 wallet
-- Some MNT for transactions (get from [faucet](https://faucet.sepolia.mantle.xyz))
+- Node.js 18+, pnpm
+- MetaMask or compatible wallet
+- Groq API key (free at [console.groq.com](https://console.groq.com))
+- Thirdweb client ID (free at [thirdweb.com](https://thirdweb.com))
 
-### Installation
+### 1. Clone and Install
 
 ```bash
-# Clone the repository
-git clone https://github.com/Kaustubh-404/hackathon-game-AVAX
-cd hackathon-game-AVAX
-
-# Install dependencies
+git clone https://github.com/flack-404/SevenSeasProtocol.git
+cd SevenSeasProtocol
 pnpm install
+```
 
-# Set up environment variables
+### 2. Environment Setup
+
+```bash
 cp .env.example .env.local
 ```
 
-### Environment Variables
+Fill in your `.env.local`:
+- `PRIVATE_KEY` — deployer wallet private key
+- `GROQ_API_KEY` — from Groq console
+- `NEXT_PUBLIC_THIRDWEB_CLIENT_ID` — from Thirdweb dashboard
+- `AGENT_PRIVATE_KEY_0` through `AGENT_PRIVATE_KEY_4` — 5 fresh wallet keys for AI agents
 
-Create `.env.local` with:
-
-```env
-NEXT_PUBLIC_THIRDWEB_CLIENT_ID=your_thirdweb_client_id
-NEXT_PUBLIC_GAME_CONTRACT_ADDRESS=
-NEXT_PUBLIC_NETWORK=testnet
-```
-
-### Development
+### 3. Deploy Contracts
 
 ```bash
-# Start development server
+# Deploy all 10 contracts to Monad testnet
+pnpm deploy:monad-testnet
+
+# Wire permissions and register agents
+npx hardhat run scripts/wire-monad.js --network monadTestnet
+```
+
+### 4. Start the Frontend
+
+```bash
 pnpm dev
-
-# Open browser
-# Visit http://localhost:3000
-
-# Compile contracts (if modifying)
-pnpm compile
-
-# Deploy to Mantle Sepolia
-pnpm deploy:mantle-testnet
+# Open http://localhost:3000/arena
 ```
 
----
+### 5. Start the AI Agents
 
-## 🏗️ Smart Contract Architecture
-
-### MantleArmada.sol
-**Main game logic contract** featuring:
-- Account management and state
-- Combat system with damage calculations
-- Upgrade system with exponential pricing
-- Travel mechanics with time calculations
-- GPM (Gold Per Minute) distribution
-- Diamond economy with revenue sharing
-- Integration with Guild, BattlePass, ShipNFT contracts
-
-**Optimizations for Mantle:**
-- 10-second GPM cycles (vs 60 seconds on other chains)
-- Batch operations for gas efficiency
-- Optimized storage patterns
-
-### ArmadaToken.sol
-**ERC-20 utility token** with:
-- Mintable by authorized contracts (game, NFT, BattlePass)
-- Burnable for future features
-- Integration with all game systems
-- Supports staking and governance (future)
-
-### ArmadaGuild.sol
-**Social coordination layer** featuring:
-- Guild creation and management
-- Member tracking with contributions
-- Treasury system with dividend distribution
-- Guild wars preparation (future)
-- Officer and leadership roles
-
-### BattlePass.sol
-**Seasonal progression system** with:
-- XP tracking from multiple sources
-- Level-based rewards (gold, diamonds, ARMADA)
-- Free and premium tiers
-- Season management
-- Reward claiming with checks
-
-### ShipNFT.sol
-**RWA-focused yield-bearing NFTs**:
-- ERC-721 standard compliance
-- Yield generation based on battle power
-- Staking for enhanced rewards
-- On-chain metadata and ship classes
-- Marketplace-ready design
-- Foundation for future DeFi integration
-
-**Security Features:**
-- OpenZeppelin's `Ownable`, `ReentrancyGuard`
-- Input validation and bounds checking
-- Time-based action protection
-- Reentrancy guards on all state changes
-
----
-
-## 💎 Diamond Economy
-
-| Package | Cost | Diamonds | Uses |
-|---------|------|----------|------|
-| Starter | 10 MNT | 1 💎 | Fast travel, instant repairs |
-| Adventurer | 45 MNT | 5 💎 | 10% discount per diamond |
-| Captain | 90 MNT | 10 💎 | 12.5% discount per diamond |
-
-**Revenue Distribution:**
-- 40% → Rank #1 Player
-- 20% → Rank #2 Player
-- 10% → Rank #3 Player
-- 30% → Contract Treasury
-
----
-
-## 🏆 Why Mantle Network?
-
-### ⚡ Performance Benefits
-- **Fast Block Times**: 10-second GPM cycles enable real-time gameplay
-- **Low Gas Fees**: Affordable transactions for frequent game actions
-- **High Throughput**: Supports multiple concurrent players
-
-### 🎯 RWA Vision Alignment
-- **Ship NFTs**: Yield-bearing assets demonstrate RWA principles
-- **DeFi Integration**: Foundation for bonds, fractional ownership
-- **Compliance Ready**: KYC integration potential for regulated features
-
-### 🌟 Developer Experience
-- **EVM Compatibility**: Easy migration and development
-- **Robust Infrastructure**: Reliable RPC and explorer
-- **Growing Ecosystem**: Access to Mantle's DeFi primitives
-
-### 💪 Unique Features Enabled by Mantle
-1. **Real-time GPM**: 10-second cycles vs 60 seconds on other chains
-2. **Complex Game Logic**: Multiple contracts working together efficiently
-3. **NFT Yield System**: On-chain calculations without prohibitive gas costs
-4. **Guild Treasury**: Frequent dividend distributions feasible
-
----
-
-## 🎯 Hackathon Categories
-
-This project competes in:
-
-### 🏆 **Primary: GameFi & NFT**
-- Fully on-chain game mechanics
-- Yield-bearing Ship NFTs
-- ARMADA token economy
-- Guild social coordination
-
-### 🏆 **Secondary: DeFi**
-- Staking system (Ship NFTs)
-- Yield generation (0.1%-1.0% daily)
-- Treasury management (Guilds)
-- Token distribution (Battle Pass)
-
-### 🏆 **Tertiary: RWA Innovation**
-- Ships as real-world-analogous assets
-- Yield-bearing properties
-- Tradeable ownership
-- Foundation for bonds/fractional ownership
-
----
-
-## 🔐 Security & Testing
-
-### Security Measures
-- ✅ Reentrancy protection on all state-changing functions
-- ✅ Input validation and sanitization
-- ✅ Time-based action cooldowns
-- ✅ Access control (Ownable pattern)
-- ✅ Safe math operations (Solidity 0.8+)
-- ✅ Non-upgradeable contracts (immutability)
-
-### Testing
 ```bash
-# Run test suite (when implemented)
-pnpm test
-
-# Gas optimization analysis
-pnpm test:gas
-
-# Coverage report
-pnpm test:coverage
+pnpm agents:testnet
 ```
+
+Watch the terminal — 5 agents start making LLM-powered decisions every 30 seconds.
+
 ---
 
-## 🔗 Links
+## Local Development (Anvil Fork)
 
-- **Live Demo**: [seven-seas-protocol.vercel.app](https://seven-seas-protocol.vercel.app) 
-- **Contracts**: [Mantle Sepolia Explorer](https://sepolia.mantlescan.xyz)
+For gas-free testing using a local Anvil fork:
+
+```bash
+# Terminal 1 — Start Anvil
+anvil --fork-url https://testnet-rpc.monad.xyz --chain-id 10143
+
+# Terminal 2 — Fund wallets (100 MON each)
+curl -s -X POST http://127.0.0.1:8545 \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","method":"anvil_setBalance","params":["YOUR_WALLET","0x56BC75E2D63100000"],"id":1}'
+
+# Deploy to local fork
+pnpm deploy:monad-testnet
+```
+
+Update `.env.local`:
+```env
+NEXT_PUBLIC_MONAD_RPC_URL=http://127.0.0.1:8545
+MONAD_RPC_URL_TESTNET=http://127.0.0.1:8545
+```
+
+Update MetaMask RPC to `http://127.0.0.1:8545` for chain ID 10143.
+
+> See `DEV_UPDATE.md` for a complete local RPC switching checklist.
+
 ---
 
-## 🙏 Acknowledgments
+## Demo Walkthrough (for PPT / Live Demo)
 
-- **Mantle Network** - For the hackathon and incredible L2 infrastructure
-- **Thirdweb** - For the amazing Web3 SDK
-- **OpenZeppelin** - For secure smart contract libraries
-- **The Community** - For feedback and support
+> Use this sequence for your presentation or hackathon demo:
+
+### Slide 1: The Problem
+- On-chain games are static — players need other humans to be online
+- AI agents in crypto are wallet bots, not strategic players
+- No spectator + betting layer for on-chain games
+
+### Slide 2: The Solution
+- 5 autonomous AI pirates that play 24/7 using Groq LLMs
+- Players challenge, spectate, and bet on AI battles
+- Everything on-chain on Monad — wagers, ELO, predictions
+
+### Slide 3: Live Demo Flow
+1. Open `/arena` — show ocean scene with 5 pirate ships sailing
+2. **Leaderboard** — live ELO rankings, battle feed, bankrolls
+3. **Challenge an agent** — click "Challenge" on an open match
+4. **Battle animation** — ship GIFs, explosions, 95-second countdown
+5. **Prediction market** — switch tabs and bet while battle is pending
+6. **Result** — win/lose overlay with payout
+7. **My Battles** — show battle history (W/L record)
+8. **Agent terminal** — show agents making LLM decisions in real-time
+
+### Slide 4: Architecture
+- 10 Solidity contracts on Monad
+- Next.js 15 frontend with Thirdweb v5
+- 5 AI agents with distinct personalities via Groq LLM
+- Fallback to rule-based when Groq hits daily limit
+
+### Slide 5: What Makes It Different
+- Agents are **always online** — no waiting for opponents
+- **90-second prediction window** creates a betting market per match
+- Player can **auto-execute** battles — never stuck waiting for agent
+- On-chain **ELO system** — transparent, verifiable rankings
+- **Mainnet ready** — SEAS token launched on nad.fun
+
+---
+
+## Key Design Decisions
+
+| Decision | Why |
+|---|---|
+| **90s prediction window** | Gives spectators time to bet before battle resolves |
+| **Player auto-execute at 95s** | Player is never stuck waiting for agent to call `executeBattle` |
+| **Sanity override system** | LLMs hallucinate — guards prevent impossible actions |
+| **Rule-based fallback** | Groq free tier = 100K tokens/day; agents stay alive on rules |
+| **Battle state at tab level** | Modal state lives in `MatchesTab` — survives component unmount |
+| **On-chain ELO** | Transparent, verifiable, immutable rankings |
+| **Thirdweb v5 hooks** | `useReadContract` with `refetchInterval` for reliable polling |
+
+---
+
+## SEAS Token
+
+| Network | How to get SEAS |
+|---|---|
+| **Testnet** | Click "Claim 10K SEAS" in the Arena header (calls `claimTestTokens()`) |
+| **Mainnet** | Launch on [nad.fun](https://nad.fun) (Monad's token launchpad) — replace address in `.env.local` |
+
+---
+
+## Hackathon Tracks
+
+- **Monad** — Full deployment leveraging 1-second block times for real-time gameplay
+- **AI Agents** — 5 autonomous LLM-powered agents making on-chain decisions
+- **DeFi / Gaming** — Wager battles + prediction market = on-chain speculation
+- **Consumer Crypto** — Spectate, bet, and compete with AI in a pirate game
+
+---
+
+## Built With
+
+- [Monad](https://monad.xyz) — High-performance EVM blockchain
+- [Groq](https://groq.com) — Ultra-fast LLM inference
+- [Thirdweb](https://thirdweb.com) — Web3 SDK for React
+- [Hardhat](https://hardhat.org) — Solidity development framework
+- [OpenZeppelin](https://openzeppelin.com) — Secure smart contract libraries
+- [Next.js](https://nextjs.org) — React framework
+- [nad.fun](https://nad.fun) — Monad token launchpad
+
+---
+
+## License
+
+MIT
 
 ---
 
 <div align="center">
-  <h3>⚓ Set sail and conquer the Seven Seas! ⚓</h3>
-  <p><em>Built for Mantle Global Hackathon 2025</em></p>
-  <p><em>Seven Seas Protocol - Where blockchain meets the high seas.</em></p>
-
-  <br/>
-
-  <a href="https://www.mantle.xyz/">
-    <img src="https://img.shields.io/badge/Powered%20by-Mantle-blue?style=for-the-badge" alt="Powered by Mantle"/>
-  </a>
+  <h3>Where AI Pirates Fight for Treasure on Monad</h3>
+  <p><em>Seven Seas Protocol — Moltiverse Hackathon 2026</em></p>
 </div>
