@@ -283,12 +283,16 @@ seven-seas-protocol/
 
 ### Prerequisites
 
-- Node.js 18+, pnpm
-- MetaMask or compatible wallet
-- Groq API key (free at [console.groq.com](https://console.groq.com))
-- Thirdweb client ID (free at [thirdweb.com](https://thirdweb.com))
+| Tool | Version | How to get |
+|------|---------|------------|
+| **Node.js** | 18+ | [nodejs.org](https://nodejs.org) |
+| **pnpm** | 10+ | `npm install -g pnpm` |
+| **Foundry (Anvil)** | latest | `curl -L https://foundry.paradigm.xyz \| bash && foundryup` |
+| **MetaMask** | latest | [metamask.io](https://metamask.io) — or any EVM wallet |
+| **Groq API Key** | free | [console.groq.com](https://console.groq.com) — 100K tokens/day free tier |
+| **Thirdweb Client ID** | free | [thirdweb.com/dashboard](https://thirdweb.com/dashboard/settings) |
 
-### 1. Clone and Install
+### Step 1 — Clone and Install
 
 ```bash
 git clone https://github.com/flack-404/SevenSeasProtocol.git
@@ -296,71 +300,205 @@ cd SevenSeasProtocol
 pnpm install
 ```
 
-### 2. Environment Setup
+### Step 2 — Environment Setup
 
 ```bash
 cp .env.example .env.local
 ```
 
-Fill in your `.env.local`:
-- `PRIVATE_KEY` — deployer wallet private key
-- `GROQ_API_KEY` — from Groq console
-- `NEXT_PUBLIC_THIRDWEB_CLIENT_ID` — from Thirdweb dashboard
-- `AGENT_PRIVATE_KEY_0` through `AGENT_PRIVATE_KEY_4` — 5 fresh wallet keys for AI agents
+Open `.env.local` and fill in the following:
 
-### 3. Deploy Contracts
+```env
+# ── Your deployer wallet (the account that deploys contracts) ──
+PRIVATE_KEY=0xYOUR_DEPLOYER_PRIVATE_KEY
 
-```bash
-# Deploy all 10 contracts to Monad testnet
-pnpm deploy:monad-testnet
+# ── 5 AI Agent wallets (generate 5 fresh private keys) ──
+# Each agent needs its own wallet. You can generate keys with:
+#   node -e "console.log(require('ethers').Wallet.createRandom().privateKey)"
+AGENT_PRIVATE_KEY_0=0x...   # Blackbeard (AggressiveRaider)
+AGENT_PRIVATE_KEY_1=0x...   # Ironclad   (DefensiveTrader)
+AGENT_PRIVATE_KEY_2=0x...   # TheGhost   (AdaptiveLearner)
+AGENT_PRIVATE_KEY_3=0x...   # Admiralty  (GuildCoordinator)
+AGENT_PRIVATE_KEY_4=0x...   # Tempest    (BalancedAdmiral)
 
-# Wire permissions and register agents
-npx hardhat run scripts/wire-monad.js --network monadTestnet
+# ── Groq API (powers the AI agent brains) ──
+GROQ_API_KEY=gsk_YOUR_GROQ_API_KEY
+
+# ── Thirdweb (powers wallet connection in the frontend) ──
+NEXT_PUBLIC_THIRDWEB_CLIENT_ID=YOUR_THIRDWEB_CLIENT_ID
+THIRDWEB_SECRET_KEY=YOUR_THIRDWEB_SECRET_KEY
+
+# ── Network (testnet for local dev, mainnet for production) ──
+NEXT_PUBLIC_NETWORK=testnet
 ```
 
-### 4. Start the Frontend
+> The contract addresses will be filled automatically by the deploy script.
+
+### Step 3 — Start Local Anvil Fork (Gas-Free Development)
+
+Anvil creates a local fork of Monad testnet so you can develop without spending real MON.
+
+**Terminal 1 — Start Anvil:**
 
 ```bash
-pnpm dev
-# Open http://localhost:3000/arena
-```
-
-### 5. Start the AI Agents
-
-```bash
-pnpm agents:testnet
-```
-
-Watch the terminal — 5 agents start making LLM-powered decisions every 30 seconds.
-
----
-
-## Local Development (Anvil Fork)
-
-For gas-free testing using a local Anvil fork:
-
-```bash
-# Terminal 1 — Start Anvil
 anvil --fork-url https://testnet-rpc.monad.xyz --chain-id 10143
+```
 
-# Terminal 2 — Fund wallets (100 MON each)
+Keep this running. Anvil is now serving a local blockchain at `http://127.0.0.1:8545`.
+
+**Terminal 2 — Fund all wallets with MON (100 MON each):**
+
+You need to fund your deployer wallet and all 5 agent wallets. Replace each `YOUR_ADDRESS` with the actual wallet address:
+
+```bash
+# Fund deployer wallet
 curl -s -X POST http://127.0.0.1:8545 \
   -H "Content-Type: application/json" \
-  -d '{"jsonrpc":"2.0","method":"anvil_setBalance","params":["YOUR_WALLET","0x56BC75E2D63100000"],"id":1}'
+  -d '{"jsonrpc":"2.0","method":"anvil_setBalance","params":["DEPLOYER_ADDRESS","0x56BC75E2D63100000"],"id":1}'
 
-# Deploy to local fork
-pnpm deploy:monad-testnet
+# Fund all 5 agent wallets (repeat for each agent address)
+curl -s -X POST http://127.0.0.1:8545 \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","method":"anvil_setBalance","params":["AGENT_0_ADDRESS","0x56BC75E2D63100000"],"id":1}'
+
+# ... repeat for AGENT_1 through AGENT_4
 ```
 
-Update `.env.local`:
+> To get agent addresses from private keys:
+> ```bash
+> node -e "const {ethers}=require('ethers'); console.log(new ethers.Wallet('YOUR_PRIVATE_KEY').address)"
+> ```
+
+**Update `.env.local` RPC to point to Anvil:**
+
 ```env
 NEXT_PUBLIC_MONAD_RPC_URL=http://127.0.0.1:8545
 MONAD_RPC_URL_TESTNET=http://127.0.0.1:8545
 ```
 
-Update MetaMask RPC to `http://127.0.0.1:8545` for chain ID 10143.
+### Step 4 — Compile and Deploy Contracts
 
-> See `DEV_UPDATE.md` for a complete local RPC switching checklist.
+```bash
+# Compile all 10 Solidity contracts
+pnpm compile
+
+# Deploy all contracts to local Anvil fork
+# This deploys, wires permissions, adds upgrades, creates agent game accounts,
+# funds agents with SEAS tokens, and registers them in AgentController
+pnpm deploy:monad-testnet
+```
+
+The script will:
+1. Deploy all 10 contracts (ArmadaToken, ArmadaGuild, BattlePass, ShipNFT, MantleArmada, SEASToken, AgentController, WagerArena, TournamentArena, PredictionMarket)
+2. Wire all contract permissions (MantleArmada ↔ WagerArena ↔ PredictionMarket ↔ AgentController)
+3. Add 8 ship upgrades to the game
+4. Fund each agent with 10,000 SEAS tokens
+5. Create game accounts for all 5 agents
+6. Register all agents in AgentController with 1,000 SEAS bankroll
+7. Auto-update `.env.local` with all deployed contract addresses
+
+### Step 5 — Start the Frontend
+
+```bash
+pnpm dev
+```
+
+Open [http://localhost:3000/arena](http://localhost:3000/arena) in your browser.
+
+**MetaMask setup for local development:**
+1. Open MetaMask → Settings → Networks → Add Network
+2. Network Name: `Monad Local`
+3. RPC URL: `http://127.0.0.1:8545`
+4. Chain ID: `10143`
+5. Currency Symbol: `MON`
+6. Import your test wallet using a private key
+7. Go to Settings → Advanced → **Clear Activity Tab Data** (important if switching between networks)
+
+### Step 6 — Start the AI Agents
+
+```bash
+pnpm agents:testnet
+```
+
+You'll see all 5 agents start making decisions in the terminal:
+
+```
+[Blackbeard] 🏴‍☠️ Action: wager_battle (250 SEAS) — "Time to plunder!"
+[Ironclad]   ⚓ Action: claim_gpm — conservative play
+[TheGhost]   👻 Action: accept_match #3 — Kelly Criterion says YES
+[Admiralty]   🎖️ Action: hire_crew — maintaining full crew
+[Tempest]    🌊 Action: idle — waiting for better odds
+```
+
+Each agent runs a 30-second loop: read on-chain state → send to Groq LLM → parse decision → execute transaction. When Groq hits rate limits, agents fall back to rule-based strategies automatically.
+
+### Step 7 — Play the Game
+
+1. Open [http://localhost:3000/arena](http://localhost:3000/arena)
+2. Connect your MetaMask wallet
+3. Click **"Claim 10K SEAS"** in the header to get test tokens
+4. Go to **Matches** tab → find an open match → click **"Challenge"**
+5. Approve SEAS spending → accept the match
+6. Watch the **95-second countdown** while predictions are open
+7. Battle executes automatically → see your win/loss result
+8. Check **My Battles** for your history and **My Bets** for predictions
+
+---
+
+## Deploying to Monad Mainnet
+
+For mainnet deployment, SEAS token is already live on [nad.fun](https://nad.fun/tokens/0x85410D2d0DEfd23d85C32E6F355BD46bfC4C7777) — the deploy script skips SEASToken and uses the nad.fun address.
+
+```bash
+# 1. Update .env.local
+NEXT_PUBLIC_NETWORK=mainnet
+NEXT_PUBLIC_MONAD_RPC_URL=https://rpc.monad.xyz
+MONAD_RPC_URL_MAINNET=https://rpc.monad.xyz
+
+# 2. Ensure deployer wallet has ~3 MON for gas
+
+# 3. Deploy 9 contracts (skips SEASToken)
+pnpm deploy:monad-mainnet
+
+# 4. Fund each agent wallet with:
+#    - ~0.5 MON for gas
+#    - 1000+ SEAS (buy on nad.fun and send to agent wallets)
+
+# 5. Start agents on mainnet
+pnpm agents:mainnet
+```
+
+---
+
+## Deploying Frontend to Vercel
+
+```bash
+# Install Vercel CLI
+npm i -g vercel
+
+# Deploy
+vercel --prod
+```
+
+Add these environment variables in Vercel → Project Settings → Environment Variables:
+
+```
+NEXT_PUBLIC_NETWORK=mainnet
+NEXT_PUBLIC_THIRDWEB_CLIENT_ID=your_thirdweb_client_id
+NEXT_PUBLIC_MONAD_RPC_URL=https://rpc.monad.xyz
+NEXT_PUBLIC_GAME_CONTRACT_ADDRESS=0xa206a56F6249C15184845e39d57F1D1bd4ac9F2C
+NEXT_PUBLIC_ARMADA_TOKEN_ADDRESS=0x091CfC4b9E6FF0026F384b8c4664B8C03Af21EA6
+NEXT_PUBLIC_GUILD_CONTRACT_ADDRESS=0xeb2F5C59A38F0f2339F5B399e4EDeF1FA834FA45
+NEXT_PUBLIC_BATTLE_PASS_ADDRESS=0xec9321C66aD8D73FB8f8D80736e1b6C47570c5Ad
+NEXT_PUBLIC_SHIP_NFT_ADDRESS=0x36e411193A20fc9A5199bf52695F24bfC0cD197e
+NEXT_PUBLIC_SEAS_TOKEN_ADDRESS=0x85410D2d0DEfd23d85C32E6F355BD46bfC4C7777
+NEXT_PUBLIC_AGENT_CONTROLLER_ADDRESS=0x3e2E6d0DE8353D351E5f01E52507037Cb9De5B4a
+NEXT_PUBLIC_WAGER_ARENA_ADDRESS=0x8e9598b4f1EFA86A41D8dB7254C52D9B0b150Ec2
+NEXT_PUBLIC_TOURNAMENT_ARENA_ADDRESS=0x564eFA01C32cA38488BBA08BeF28a6ef32A744Dd
+NEXT_PUBLIC_PREDICTION_MARKET_ADDRESS=0x23332e4C7878Bdd9423A0eFbEb081b5552935eaA
+```
+
+> Note: Private keys and Groq API keys are NOT needed on Vercel — the frontend is read-only. Agents run separately on your server.
 
 ---
 
