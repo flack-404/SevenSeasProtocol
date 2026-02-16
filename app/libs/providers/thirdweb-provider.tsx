@@ -15,7 +15,7 @@ const client = createThirdwebClient({
 
 // Monad Mainnet
 const monadMainnet = defineChain({
-  id: 41454,
+  id: 143,
   name: "Monad",
   nativeCurrency: {
     name: "MON",

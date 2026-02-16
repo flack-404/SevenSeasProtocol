@@ -14,18 +14,18 @@ export const CONTRACT_ADDRESSES = {
     TournamentArena: process.env.NEXT_PUBLIC_TOURNAMENT_ARENA_ADDRESS || '',
     PredictionMarket: process.env.NEXT_PUBLIC_PREDICTION_MARKET_ADDRESS || '',
   },
-  // Monad Mainnet (chainId: 41454)
+  // Monad Mainnet (chainId: 41454) — reads same env vars as testnet
   mainnet: {
-    MantleArmada: '',
-    ArmadaToken: '',
-    ArmadaGuild: '',
-    BattlePass: '',
-    ShipNFT: '',
-    SEASToken: '',
-    AgentController: '',
-    WagerArena: '',
-    TournamentArena: '',
-    PredictionMarket: '',
+    MantleArmada: process.env.NEXT_PUBLIC_GAME_CONTRACT_ADDRESS || '',
+    ArmadaToken: process.env.NEXT_PUBLIC_ARMADA_TOKEN_ADDRESS || '',
+    ArmadaGuild: process.env.NEXT_PUBLIC_GUILD_CONTRACT_ADDRESS || '',
+    BattlePass: process.env.NEXT_PUBLIC_BATTLE_PASS_ADDRESS || '',
+    ShipNFT: process.env.NEXT_PUBLIC_SHIP_NFT_ADDRESS || '',
+    SEASToken: process.env.NEXT_PUBLIC_SEAS_TOKEN_ADDRESS || '',
+    AgentController: process.env.NEXT_PUBLIC_AGENT_CONTROLLER_ADDRESS || '',
+    WagerArena: process.env.NEXT_PUBLIC_WAGER_ARENA_ADDRESS || '',
+    TournamentArena: process.env.NEXT_PUBLIC_TOURNAMENT_ARENA_ADDRESS || '',
+    PredictionMarket: process.env.NEXT_PUBLIC_PREDICTION_MARKET_ADDRESS || '',
   },
 } as const;
 
@@ -48,7 +48,7 @@ export const NETWORK_CONFIG = {
     },
   },
   mainnet: {
-    chainId: 41454,
+    chainId: 143,
     name: 'Monad',
     rpcUrl: 'https://rpc.monad.xyz',
     explorerUrl: 'https://monadexplorer.com',

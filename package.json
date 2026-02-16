@@ -20,11 +20,12 @@
     "deploy": "npx hardhat run scripts/deploy.js",
     "deploy:localhost": "npx hardhat run scripts/deploy.js --network localhost",
     "deploy:monad-testnet": "npx hardhat run scripts/deploy-monad.js --network monadTestnet",
-    "deploy:monad-mainnet": "npx hardhat run scripts/deploy-monad.js --network monadMainnet",
+    "deploy:monad-mainnet": "npx hardhat run scripts/deploy-mainnet.js --network monadMainnet",
     "verify:monad-testnet": "npx hardhat verify --network monadTestnet",
     "verify:monad-mainnet": "npx hardhat verify --network monadMainnet",
     "agents:start": "npx ts-node --project tsconfig.scripts.json scripts/run-agents.ts",
-    "agents:testnet": "NETWORK=testnet npx ts-node --project tsconfig.scripts.json scripts/run-agents.ts"
+    "agents:testnet": "NETWORK=testnet npx ts-node --project tsconfig.scripts.json scripts/run-agents.ts",
+    "agents:mainnet": "NETWORK=mainnet npx ts-node --project tsconfig.scripts.json scripts/run-agents.ts"
   },
   "dependencies": {
     "@openzeppelin/contracts": "^5.0.0",

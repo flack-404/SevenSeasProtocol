@@ -12,6 +12,12 @@
   [![Next.js 15](https://img.shields.io/badge/Next.js-15-black?style=for-the-badge)](https://nextjs.org/)
   [![Solidity](https://img.shields.io/badge/Solidity-0.8.24-blue?style=for-the-badge)](https://soliditylang.org/)
 
+  ### Pitch Deck
+  [![Pitch Deck](https://img.youtube.com/vi/3DhFbJY6lFU/maxresdefault.jpg)](https://youtu.be/3DhFbJY6lFU)
+
+  ### Live Demo
+  [![Live Demo](https://img.youtube.com/vi/suNfLmkSPA0/maxresdefault.jpg)](https://youtu.be/suNfLmkSPA0)
+
 </div>
 
 ---
@@ -82,12 +88,12 @@ When the Groq API hits its daily limit (100K TPD free tier), agents seamlessly f
 
 ## Smart Contracts (10 total)
 
-All contracts deployed on **Monad Testnet (chainId 10143)**.
+Deployed on **Monad Mainnet (chainId 143)** and **Monad Testnet (chainId 10143)**.
 
 | Contract | Purpose |
 |---|---|
 | **MantleArmada.sol** | Core game engine — ship stats, duels, GPM, locations, check-ins |
-| **SEASToken.sol** | ERC-20 token with testnet faucet (10K SEAS per claim) |
+| **SEASToken.sol** | ERC-20 token — testnet: deployed contract / mainnet: [nad.fun](https://nad.fun/tokens/0x85410D2d0DEfd23d85C32E6F355BD46bfC4C7777) |
 | **AgentController.sol** | AI agent registry — ELO tracking, bankroll management, leaderboard |
 | **WagerArena.sol** | 1v1 wager battles — create/accept/execute, 5% protocol fee |
 | **PredictionMarket.sol** | Bet on match outcomes — proportional payout from loser pool |
@@ -96,6 +102,36 @@ All contracts deployed on **Monad Testnet (chainId 10143)**.
 | **ArmadaGuild.sol** | Guild system for team play |
 | **ArmadaToken.sol** | In-game gold token (ARMD) |
 | **BattlePass.sol** | Season-based progression system |
+
+### Mainnet Contract Addresses (Monad — chainId 143)
+
+| Contract | Address |
+|---|---|
+| SEASToken (nad.fun) | `0x85410D2d0DEfd23d85C32E6F355BD46bfC4C7777` |
+| MantleArmada | `0xa206a56F6249C15184845e39d57F1D1bd4ac9F2C` |
+| AgentController | `0x3e2E6d0DE8353D351E5f01E52507037Cb9De5B4a` |
+| WagerArena | `0x8e9598b4f1EFA86A41D8dB7254C52D9B0b150Ec2` |
+| PredictionMarket | `0x23332e4C7878Bdd9423A0eFbEb081b5552935eaA` |
+| TournamentArena | `0x564eFA01C32cA38488BBA08BeF28a6ef32A744Dd` |
+| ArmadaToken | `0x091CfC4b9E6FF0026F384b8c4664B8C03Af21EA6` |
+| ArmadaGuild | `0xeb2F5C59A38F0f2339F5B399e4EDeF1FA834FA45` |
+| BattlePass | `0xec9321C66aD8D73FB8f8D80736e1b6C47570c5Ad` |
+| ShipNFT | `0x36e411193A20fc9A5199bf52695F24bfC0cD197e` |
+
+### Testnet Contract Addresses (Monad Testnet — chainId 10143)
+
+| Contract | Address |
+|---|---|
+| SEASToken | `0x91DBBCc719a8F34c273a787D0014EDB9d456cdf6` |
+| MantleArmada | `0x13733EFB060e4427330F4Aeb0C46550EAE16b772` |
+| AgentController | `0x1dA3079471C29125A8b8a4FBB89bfd48F9CCF7d1` |
+| WagerArena | `0x81d03f2cB8d1546a87f00EA182D4F9d58e969665` |
+| PredictionMarket | `0x37289414feA0ca85309982e661bA26D61AeB0572` |
+| TournamentArena | `0xac8DfFBCF084bb67c94D75C826ed2701456de29C` |
+| ArmadaToken | `0x838a6bd4CC99734c0b74b00eDCbC45E316dAC3A2` |
+| ArmadaGuild | `0x88c34fea34fd972F998Bc9115ba6D7F3f2f283E8` |
+| BattlePass | `0x4d20A8400295F55470eDdE8bdfD65161eDd7B9FB` |
+| ShipNFT | `0x6dfC9E05C4A24D4cF72e98f31Da1200032fE37eC` |
 
 ### Key On-Chain Mechanics
 
@@ -198,7 +234,7 @@ Every 30 seconds per agent:
 
 | Layer | Technology |
 |---|---|
-| **Blockchain** | Monad (testnet: 10143 / mainnet: 41454) |
+| **Blockchain** | Monad (mainnet: 143 / testnet: 10143) |
 | **Smart Contracts** | Solidity 0.8.24, Hardhat, OpenZeppelin 5 |
 | **Frontend** | Next.js 15, React 19, TypeScript, Tailwind CSS |
 | **Wallet SDK** | Thirdweb v5 (ConnectButton, hooks, social login) |
@@ -386,7 +422,7 @@ Update MetaMask RPC to `http://127.0.0.1:8545` for chain ID 10143.
 | Network | How to get SEAS |
 |---|---|
 | **Testnet** | Click "Claim 10K SEAS" in the Arena header (calls `claimTestTokens()`) |
-| **Mainnet** | Launch on [nad.fun](https://nad.fun) (Monad's token launchpad) — replace address in `.env.local` |
+| **Mainnet** | Live on [nad.fun](https://nad.fun/tokens/0x85410D2d0DEfd23d85C32E6F355BD46bfC4C7777) — `0x85410D2d0DEfd23d85C32E6F355BD46bfC4C7777` |
 
 ---
 

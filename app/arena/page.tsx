@@ -652,7 +652,7 @@ function TauntFeed({ wagerArenaAddress, agentController }: {
   const fetchTaunts = useCallback(async () => {
     if (!wagerArenaAddress) return;
     try {
-      const rpc = process.env.NEXT_PUBLIC_RPC_URL || "http://127.0.0.1:8545";
+      const rpc = process.env.NEXT_PUBLIC_MONAD_RPC_URL || process.env.NEXT_PUBLIC_RPC_URL || "https://rpc.monad.xyz";
       const blockRes = await fetch(rpc, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -717,7 +717,7 @@ function TauntFeed({ wagerArenaAddress, agentController }: {
     addrs.forEach(async (addr) => {
       let alias = shortAddr(addr);
       try {
-        const rpc = process.env.NEXT_PUBLIC_RPC_URL || process.env.NEXT_PUBLIC_MONAD_RPC_URL || "http://127.0.0.1:8545";
+        const rpc = process.env.NEXT_PUBLIC_MONAD_RPC_URL || process.env.NEXT_PUBLIC_RPC_URL || "https://rpc.monad.xyz";
         // cast sig "agents(address)" = 0xfd66091e
         const res = await fetch(rpc, {
           method: "POST",

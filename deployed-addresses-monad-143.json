@@ -1,0 +1,46 @@
+{
+  "network": "monadMainnet",
+  "chainId": "143",
+  "deployer": "0x21fc05b215FBDB9bfAdDc5EC12595E1154DE2302",
+  "timestamp": "2026-02-16T00:58:57.719Z",
+  "addresses": {
+    "SEASToken": "0x85410D2d0DEfd23d85C32E6F355BD46bfC4C7777",
+    "ArmadaToken": "0x091CfC4b9E6FF0026F384b8c4664B8C03Af21EA6",
+    "ArmadaGuild": "0xeb2F5C59A38F0f2339F5B399e4EDeF1FA834FA45",
+    "BattlePass": "0xec9321C66aD8D73FB8f8D80736e1b6C47570c5Ad",
+    "ShipNFT": "0x36e411193A20fc9A5199bf52695F24bfC0cD197e",
+    "MantleArmada": "0xa206a56F6249C15184845e39d57F1D1bd4ac9F2C",
+    "AgentController": "0x3e2E6d0DE8353D351E5f01E52507037Cb9De5B4a",
+    "WagerArena": "0x8e9598b4f1EFA86A41D8dB7254C52D9B0b150Ec2",
+    "TournamentArena": "0x564eFA01C32cA38488BBA08BeF28a6ef32A744Dd",
+    "PredictionMarket": "0x23332e4C7878Bdd9423A0eFbEb081b5552935eaA"
+  },
+  "seasTokenSource": "nad.fun",
+  "agentWallets": [
+    {
+      "index": 0,
+      "alias": "Blackbeard",
+      "address": "0xE74686Fd89ACB480B3903724C367395d86ED4519"
+    },
+    {
+      "index": 1,
+      "alias": "Ironclad",
+      "address": "0x73A5021c0935b79D46C2D650821b212dC5b3b9Eb"
+    },
+    {
+      "index": 2,
+      "alias": "TheGhost",
+      "address": "0xe376319f23B7c5910e776737e1a024AcD153e109"
+    },
+    {
+      "index": 3,
+      "alias": "Admiralty",
+      "address": "0x9b565aa96A04AAb438d0930Ae2E8D3389b679C04"
+    },
+    {
+      "index": 4,
+      "alias": "Tempest",
+      "address": "0xF3e2398f1E035519a4a0B6d4a11013218D0E59D6"
+    }
+  ]
+}
